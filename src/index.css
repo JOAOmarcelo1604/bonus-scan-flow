@@ -15,7 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 224 76% 40%;
+    /* corporativo #1e40af */
+    --primary: 224 64% 40%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 214 32% 91%;
@@ -38,7 +39,7 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 224 76% 40%;
+    --ring: 224 64% 40%;
 
     --radius: 0.625rem;
 
@@ -81,8 +82,8 @@
 
   .industrial-btn-primary {
     @apply industrial-btn bg-primary text-primary-foreground
-           shadow-[0_2px_8px_hsl(224_76%_40%/0.25)]
-           hover:shadow-[0_4px_14px_hsl(224_76%_40%/0.35)]
+           shadow-[0_2px_8px_hsl(224_64%_40%_/_0.25)]
+           hover:shadow-[0_4px_14px_hsl(224_64%_40%_/_0.35)]
            hover:brightness-110;
   }
 
@@ -92,8 +93,8 @@
 
   .industrial-btn-success {
     @apply industrial-btn bg-success text-success-foreground
-           shadow-[0_2px_8px_hsl(142_71%_45%/0.25)]
-           hover:shadow-[0_4px_14px_hsl(142_71%_45%/0.35)]
+           shadow-[0_2px_8px_hsl(142_71%_45%_/_0.25)]
+           hover:shadow-[0_4px_14px_hsl(142_71%_45%_/_0.35)]
            hover:brightness-110;
   }
 

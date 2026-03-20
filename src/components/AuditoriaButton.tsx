@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,15 @@ export function AuditoriaButton({ disabled, numBonus, onConfirm }: AuditoriaButt
       setOpen(false);
       setNf("");
       setObs("");
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: unknown } };
+      const raw = ax?.response?.data;
+      let msg = "Erro ao enviar para auditoria";
+      if (typeof raw === "string") msg = raw;
+      else if (raw && typeof raw === "object" && "message" in raw) {
+        msg = String((raw as { message: unknown }).message);
+      }
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -37,20 +47,19 @@ export function AuditoriaButton({ disabled, numBonus, onConfirm }: AuditoriaButt
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
-        className="industrial-btn-success w-full sm:w-auto"
+        className="industrial-btn-success w-full sm:w-auto tracking-wide"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-        Enviar para Auditoria
+        ENVIAR PARA AUDITORIA
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmar Auditoria</DialogTitle>
+            <DialogTitle className="text-lg leading-snug">
+              Confirmar envio do Bônus #{numBonus} para auditoria?
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-muted-foreground">
-            Deseja enviar o bônus <strong className="text-foreground">{numBonus}</strong> para auditoria?
-          </p>
           <div className="space-y-3 pt-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-muted-foreground">NF (opcional)</label>
@@ -58,7 +67,7 @@ export function AuditoriaButton({ disabled, numBonus, onConfirm }: AuditoriaButt
                 value={nf}
                 onChange={(e) => setNf(e.target.value)}
                 className="industrial-input"
-                placeholder="Nota Fiscal"
+                placeholder="NF"
               />
             </div>
             <div>
@@ -66,7 +75,7 @@ export function AuditoriaButton({ disabled, numBonus, onConfirm }: AuditoriaButt
               <textarea
                 value={obs}
                 onChange={(e) => setObs(e.target.value)}
-                className="industrial-input min-h-[80px] resize-y"
+                className="industrial-input min-h-[88px] resize-y"
                 placeholder="Observação"
               />
             </div>

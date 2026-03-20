@@ -4,8 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
-import RecebimentoBonus from "./pages/RecebimentoBonus.tsx";
+import RecebimentoBonusLista from "./pages/RecebimentoBonusLista.tsx";
+import RecebimentoBonusBipagem from "./pages/RecebimentoBonusBipagem.tsx";
 import Auditoria from "./pages/Auditoria.tsx";
+import AprovacaoBonus from "./pages/AprovacaoBonus.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -18,8 +20,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/recebimento-bonus" element={<RecebimentoBonus />} />
+          <Route path="/recebimento-bonus" element={<RecebimentoBonusLista />} />
+          <Route path="/recebimento-bonus/:numBonus" element={<RecebimentoBonusBipagem />} />
           <Route path="/auditoria" element={<Auditoria />} />
+          <Route path="/aprovacao-bonus" element={<AprovacaoBonus />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,47 +1,53 @@
-import type { EtiquetaLida } from "@/types/api";
+import type { EtiquetaLidaComLinha } from "@/types/api";
 
 interface EtiquetaTableProps {
-  etiquetas: EtiquetaLida[];
+  etiquetas: EtiquetaLidaComLinha[];
+  flashingRowId: string | null;
 }
 
-export function EtiquetaTable({ etiquetas }: EtiquetaTableProps) {
+export function EtiquetaTable({ etiquetas, flashingRowId }: EtiquetaTableProps) {
   if (etiquetas.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-[hsl(214_32%_91%)] bg-white p-8 text-center text-lg text-muted-foreground">
         Nenhuma etiqueta bipada ainda. Escaneie um código de barras acima.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-x-auto rounded-xl border border-[hsl(214_32%_91%)] bg-white shadow-sm">
+      <table className="w-full min-w-[640px] text-left text-sm md:text-base">
         <thead>
-          <tr className="border-b border-border bg-muted/60">
-            <th className="px-4 py-3 font-semibold text-muted-foreground">#</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Código de Barras</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Produto</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Lote</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Série</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Peso</th>
-            <th className="px-4 py-3 font-semibold text-muted-foreground">Fornecedor</th>
+          <tr className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Código de Barras</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Produto</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Série</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Fornecedor</th>
           </tr>
         </thead>
         <tbody>
-          {etiquetas.map((e, i) => (
-            <tr
-              key={`${e.codigoBarras}-${i}`}
-              className={`zebra-row border-b border-border last:border-0 ${i === 0 ? "fade-in-row" : ""}`}
-            >
-              <td className="px-4 py-3 tabular-nums text-muted-foreground">{etiquetas.length - i}</td>
-              <td className="px-4 py-3 font-mono text-xs">{e.codigoBarras}</td>
-              <td className="px-4 py-3 font-medium">{e.codigoProduto}</td>
-              <td className="px-4 py-3">{e.lote}</td>
-              <td className="px-4 py-3">{e.serie}</td>
-              <td className="px-4 py-3 tabular-nums">{e.peso}</td>
-              <td className="px-4 py-3">{e.fornecedor}</td>
-            </tr>
-          ))}
+          {etiquetas.map((e) => {
+            const flash = flashingRowId === e._rowId;
+            return (
+              <tr
+                key={e._rowId}
+                className={`border-b border-[hsl(214_32%_91%)] last:border-0 ${
+                  flash
+                    ? "bg-emerald-100/95 transition-colors duration-300"
+                    : "even:bg-[hsl(210_40%_98%)]"
+                }`}
+              >
+                <td className="px-4 py-3 font-mono text-xs md:text-sm">{e.codigoBarras}</td>
+                <td className="px-4 py-3 font-medium">{e.codigoProduto}</td>
+                <td className="px-4 py-3">{e.lote}</td>
+                <td className="px-4 py-3">{e.serie}</td>
+                <td className="px-4 py-3 tabular-nums">{e.peso}</td>
+                <td className="px-4 py-3">{e.fornecedor}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
