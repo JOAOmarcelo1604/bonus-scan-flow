@@ -2,10 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { listarBonusDisponiveis } from "@/services/api";
+import { COD_FILIAL_RECEBIMENTO_BONUS, listarBonusDisponiveis } from "@/services/api";
 import type { BonusDisponivel } from "@/types/api";
-
-const COD_FILIAL = 1;
 
 function formatarData(iso: string) {
   if (!iso) return "—";
@@ -19,8 +17,8 @@ export default function RecebimentoBonusLista() {
   const [busca, setBusca] = useState("");
 
   const { data: bonus = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["bonus-disponiveis", COD_FILIAL],
-    queryFn: () => listarBonusDisponiveis(COD_FILIAL),
+    queryKey: ["bonus-disponiveis", COD_FILIAL_RECEBIMENTO_BONUS],
+    queryFn: () => listarBonusDisponiveis(COD_FILIAL_RECEBIMENTO_BONUS),
   });
 
   const filtrados = useMemo(() => {

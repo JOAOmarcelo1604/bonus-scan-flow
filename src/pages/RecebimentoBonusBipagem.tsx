@@ -2,15 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { biparEtiqueta, enviarAuditoria, listarBonusDisponiveis, listarProdutosBonus } from "@/services/api";
+import {
+  biparEtiqueta,
+  COD_FILIAL_RECEBIMENTO_BONUS,
+  enviarAuditoria,
+  listarBonusDisponiveis,
+  listarEtiquetasByBonus,
+  listarProdutosBonus,
+} from "@/services/api";
 import type { BonusDisponivel, EtiquetaLidaComLinha } from "@/types/api";
 import { EtiquetaTable } from "@/components/EtiquetaTable";
 import { BonusProdutosTable } from "@/components/BonusProdutosTable";
 import { AuditoriaButton } from "@/components/AuditoriaButton";
 import { playBeep } from "@/lib/beep";
 import { normalizarListaProdutosBonus } from "@/lib/bonusProduto";
-
-const COD_FILIAL = 1;
 
 function nomeFornecedorCard(fornecedorCompleto: string) {
   const idx = fornecedorCompleto.indexOf(" - ");
@@ -29,8 +34,8 @@ export default function RecebimentoBonusBipagem() {
   const numBonusValido = Number.isFinite(numBonus) && numBonus > 0;
 
   const { data: listaBonus } = useQuery({
-    queryKey: ["bonus-disponiveis", COD_FILIAL],
-    queryFn: () => listarBonusDisponiveis(COD_FILIAL),
+    queryKey: ["bonus-disponiveis", COD_FILIAL_RECEBIMENTO_BONUS],
+    queryFn: () => listarBonusDisponiveis(COD_FILIAL_RECEBIMENTO_BONUS),
     enabled: numBonusValido && !stateBonus,
   });
 
@@ -60,6 +65,12 @@ export default function RecebimentoBonusBipagem() {
     [produtosRaw],
   );
 
+  const { data: etiquetasExistentes } = useQuery({
+    queryKey: ["etiquetas-bonus", numBonus],
+    queryFn: () => listarEtiquetasByBonus(numBonus),
+    enabled: numBonusValido,
+  });
+
   const [codigoBarras, setCodigoBarras] = useState("");
   const [etiquetas, setEtiquetas] = useState<EtiquetaLidaComLinha[]>([]);
   const [bipando, setBipando] = useState(false);
@@ -67,6 +78,7 @@ export default function RecebimentoBonusBipagem() {
 
   const barrasRef = useRef<HTMLInputElement>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jaCarregouExistentes = useRef(false);
 
   useEffect(() => {
     if (!numBonusValido) {
@@ -74,6 +86,21 @@ export default function RecebimentoBonusBipagem() {
       navigate("/recebimento-bonus", { replace: true });
     }
   }, [numBonusValido, navigate]);
+
+  useEffect(() => {
+    if (etiquetasExistentes && etiquetasExistentes.length > 0 && !jaCarregouExistentes.current) {
+      jaCarregouExistentes.current = true;
+      const existentes: EtiquetaLidaComLinha[] = etiquetasExistentes.map((e) => ({
+        ...e,
+        _rowId: crypto.randomUUID(),
+      }));
+      setEtiquetas((prev) => {
+        const codigos = new Set(prev.map((p) => p.codigoBarras));
+        const novas = existentes.filter((e) => !codigos.has(e.codigoBarras));
+        return [...prev, ...novas];
+      });
+    }
+  }, [etiquetasExistentes]);
 
   useEffect(() => {
     barrasRef.current?.focus();
