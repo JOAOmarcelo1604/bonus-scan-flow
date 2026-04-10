@@ -43,6 +43,50 @@ const cards: NavCard[] = [
       </svg>
     ),
   },
+  {
+    title: "Dobra de Materiais",
+    description: "Registro de dobras de materiais por bônus",
+    path: "/dobra-materiais",
+    color: "bg-[#7c3aed]/10 text-[#7c3aed]",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v18"/><path d="M8 6l4-3 4 3"/><path d="M8 18l4 3 4-3"/><rect x="3" y="8" width="18" height="8" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    title: "Inventário — consulta",
+    description: "Resumo e lista (GET /api/inventario)",
+    path: "/inventario",
+    color: "bg-[#0891b2]/10 text-[#0891b2]",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 14h7v7h-7z"/>
+      </svg>
+    ),
+  },
+  {
+    title: "Registro de inventário",
+    description: "Bipar etiquetas e enviar para aprovação",
+    path: "/inventario/registro",
+    color: "bg-[#0d9488]/10 text-[#0d9488]",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 5v14"/><path d="M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="2"/>
+      </svg>
+    ),
+  },
+  {
+    title: "Aprovação de inventário",
+    description: "Aprovar ou reprovar itens pendentes",
+    path: "/inventario/aprovacao",
+    color: "bg-[#c2410c]/10 text-[#c2410c]",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Index() {

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { COD_FILIAL_RECEBIMENTO_BONUS, listarBonusDisponiveisRecebimento } from "@/services/api";
+import { COD_FILIAL_DOBRA, listarBonusDisponiveisDobra } from "@/services/api";
 import type { BonusDisponivel } from "@/types/api";
 
 function formatarData(iso: string) {
@@ -12,13 +12,13 @@ function formatarData(iso: string) {
   return `${d}/${m}/${y}`;
 }
 
-export default function RecebimentoBonusLista() {
+export default function DobraMateriaisLista() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
 
   const { data: bonus = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["bonus-disponiveis", COD_FILIAL_RECEBIMENTO_BONUS],
-    queryFn: () => listarBonusDisponiveisRecebimento(COD_FILIAL_RECEBIMENTO_BONUS),
+    queryKey: ["bonus-disponiveis-dobra", COD_FILIAL_DOBRA],
+    queryFn: () => listarBonusDisponiveisDobra(COD_FILIAL_DOBRA),
   });
 
   const filtrados = useMemo(() => {
@@ -32,7 +32,7 @@ export default function RecebimentoBonusLista() {
   }, [bonus, busca]);
 
   const entrar = (b: BonusDisponivel) => {
-    navigate(`/recebimento-bonus/${b.NUMBONUS}`, { state: { bonus: b } });
+    navigate(`/dobra-materiais/${b.NUMBONUS}`, { state: { bonus: b } });
   };
 
   return (
@@ -60,7 +60,7 @@ export default function RecebimentoBonusLista() {
             </svg>
           </button>
           <h1 className="text-xl font-bold tracking-tight text-[hsl(222_47%_11%)] sm:text-2xl">
-            Recebimento Bônus
+            Dobra de Materiais
           </h1>
         </div>
       </header>

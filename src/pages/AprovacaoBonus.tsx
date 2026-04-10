@@ -42,6 +42,11 @@ export default function AprovacaoBonus() {
     onSuccess: (_, id) => {
       removerCard(id);
       toast.success("Auditoria aprovada.");
+      queryClient.invalidateQueries({ queryKey: ["bonus-disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["bonus-disponiveis-dobra"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-pagina"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-registro"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-pendentes"] });
     },
     onError: (err) => {
       const msg = axios.isAxiosError(err)
@@ -61,6 +66,11 @@ export default function AprovacaoBonus() {
       setRejeitarId(null);
       setObsRejeicao("");
       toast.success("Auditoria rejeitada.");
+      queryClient.invalidateQueries({ queryKey: ["bonus-disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["bonus-disponiveis-dobra"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-pagina"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-registro"] });
+      queryClient.invalidateQueries({ queryKey: ["inventario-pendentes"] });
     },
     onError: (err) => {
       const msg = axios.isAxiosError(err)

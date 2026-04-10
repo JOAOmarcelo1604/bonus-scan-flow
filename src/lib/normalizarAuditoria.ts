@@ -37,10 +37,15 @@ export function normalizarAuditoriaItem(raw: unknown): AuditoriaModel | null {
   if (!raw || typeof raw !== "object") return null;
 
   const top = raw as Record<string, unknown>;
-  const bonusNested = top.bonus ?? top.Bonus;
   const flat: Record<string, unknown> = { ...top };
-  if (bonusNested && typeof bonusNested === "object" && !Array.isArray(bonusNested)) {
-    Object.assign(flat, bonusNested as Record<string, unknown>);
+
+  const nestedKeys = ["bonus", "Bonus", "pcBonuscModel", "PcBonuscModel", "recebimentoBonus", "RecebimentoBonus"];
+  for (const key of nestedKeys) {
+    const nested = top[key];
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      Object.assign(flat, nested as Record<string, unknown>);
+      break;
+    }
   }
 
   const m = toMap(flat);
