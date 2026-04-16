@@ -17,6 +17,8 @@ import type {
   GerarEtiquetaRequest,
   GerarEtiquetaResponse,
   ImprimirEtiquetaRequest,
+  AberturaBiparRequest,
+  AberturaBiparResponse,
 } from "@/types/api";
 
 
@@ -107,10 +109,27 @@ export async function listarEtiquetas(): Promise<EtiquetaLida[]> {
 
 /* ── Dobra de Materiais ── */
 
+export async function verificarEtiquetaDobra(codigoBarras: string): Promise<void> {
+  await api.get("/api/dobra/verificar", { params: { codigoBarras } });
+}
+
 export async function biparDobra(data: DobraBiparRequest): Promise<DobraBiparResponse> {
   const res = await api.post<DobraBiparResponse>("/api/dobra/bipar", data);
   return res.data;
 }
+
+/* ── Abertura de Materiais ── */
+
+export async function verificarEtiquetaAbertura(codigoBarras: string): Promise<void> {
+  await api.get("/api/abertura/verificar", { params: { codigoBarras } });
+}
+
+export async function biparAbertura(data: AberturaBiparRequest): Promise<AberturaBiparResponse> {
+  const res = await api.post<AberturaBiparResponse>("/api/abertura/bipar", data);
+  return res.data;
+}
+
+
 
 /* ── Inventário ── */
 

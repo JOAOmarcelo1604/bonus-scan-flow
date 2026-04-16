@@ -55,6 +55,17 @@ const cards: NavCard[] = [
     ),
   },
   {
+    title: "Abertura de Materiais",
+    description: "Registro da abertura de etiquetas cegas",
+    path: "/abertura-material",
+    color: "bg-[#0ea5e9]/10 text-[#0ea5e9]",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/>
+      </svg>
+    ),
+  },
+  {
     title: "Inventário — consulta",
     description: "Resumo e lista (GET /api/inventario)",
     path: "/inventario",

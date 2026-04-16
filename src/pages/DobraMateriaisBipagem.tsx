@@ -1,23 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { biparDobra, verificarEtiquetaDobra } from "@/services/api";
 import {
-  biparDobra,
-  COD_FILIAL_DOBRA,
-  listarBonusDisponiveisDobra,
-  listarProdutosBonus,
-} from "@/services/api";
-import type { BonusDisponivel, DobraRegistradaComLinha } from "@/types/api";
-import { BonusProdutosTable } from "@/components/BonusProdutosTable";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { DobraRegistradaComLinha } from "@/types/api";
 import { playBeep } from "@/lib/beep";
-import { normalizarListaProdutosBonus } from "@/lib/bonusProduto";
-
-function nomeFornecedorCard(fornecedorCompleto: string) {
-  const idx = fornecedorCompleto.indexOf(" - ");
-  if (idx === -1) return fornecedorCompleto.trim();
-  return fornecedorCompleto.slice(idx + 3).trim() || fornecedorCompleto;
-}
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   D: { label: "DOBRADO", className: "bg-emerald-100 text-emerald-800 border border-emerald-300" },
@@ -27,50 +19,13 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 };
 
 export default function DobraMateriaisBipagem() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { numBonus: numBonusParam } = useParams<{ numBonus: string }>();
-  const location = useLocation();
-  const stateBonus = (location.state as { bonus?: BonusDisponivel } | null)?.bonus;
-
-  const numBonus = Number(numBonusParam);
-  const numBonusValido = Number.isFinite(numBonus) && numBonus > 0;
-
-  const { data: listaBonus } = useQuery({
-    queryKey: ["bonus-disponiveis-dobra", COD_FILIAL_DOBRA],
-    queryFn: () => listarBonusDisponiveisDobra(COD_FILIAL_DOBRA),
-    enabled: numBonusValido && !stateBonus,
-  });
-
-  const bonusMeta =
-    stateBonus?.NUMBONUS === numBonus
-      ? stateBonus
-      : listaBonus?.find((b) => b.NUMBONUS === numBonus);
-
-  const tituloFornecedor = bonusMeta
-    ? nomeFornecedorCard(bonusMeta.FORNECEDOR)
-    : "—";
-
-  const {
-    data: produtosRaw,
-    isLoading: produtosLoading,
-    isError: produtosErro,
-    error: produtosErrorObj,
-    refetch: refetchProdutos,
-  } = useQuery({
-    queryKey: ["bonus-produtos", numBonus],
-    queryFn: () => listarProdutosBonus(numBonus),
-    enabled: numBonusValido,
-  });
-
-  const produtosLinhas = useMemo(
-    () => normalizarListaProdutosBonus(produtosRaw),
-    [produtosRaw],
-  );
 
   const [codigoBarras, setCodigoBarras] = useState("");
-  const [qtBarras, setQtBarras] = useState<string>("");
   const [dobras, setDobras] = useState<DobraRegistradaComLinha[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [qtBarrasDialog, setQtBarrasDialog] = useState("");
+  const inputQtBarrasRef = useRef<HTMLInputElement>(null);
   const [bipando, setBipando] = useState(false);
   const [flashingRowId, setFlashingRowId] = useState<string | null>(null);
 
@@ -78,15 +33,8 @@ export default function DobraMateriaisBipagem() {
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!numBonusValido) {
-      toast.error("Número de bônus inválido");
-      navigate("/dobra-materiais", { replace: true });
-    }
-  }, [numBonusValido, navigate]);
-
-  useEffect(() => {
     barrasRef.current?.focus();
-  }, [numBonusValido]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -94,14 +42,38 @@ export default function DobraMateriaisBipagem() {
     };
   }, []);
 
-  const handleBipar = useCallback(async () => {
+  const handleBiparInitial = useCallback(async () => {
     const codigo = codigoBarras.trim();
-    const qtBarrasNum = Number(qtBarras);
+    if (!codigo) return;
 
-    if (!numBonusValido || !codigo) return;
+    setBipando(true);
+    try {
+      await verificarEtiquetaDobra(codigo);
+      // Sucesso na verificação: abre modal e limpa o valor prévio
+      setQtBarrasDialog("");
+      setIsModalOpen(true);
+      setTimeout(() => inputQtBarrasRef.current?.focus(), 100);
+    } catch (err: unknown) {
+      playBeep(false);
+      const ax = err as { response?: { data?: unknown } };
+      const raw = ax?.response?.data;
+      let msg = "Erro ao verificar etiqueta";
+      if (typeof raw === "string" && raw.trim()) msg = raw;
+      toast.error(msg);
+      setCodigoBarras("");
+    } finally {
+      setBipando(false);
+      barrasRef.current?.focus();
+    }
+  }, [codigoBarras]);
 
-    if (!qtBarrasNum || qtBarrasNum <= 0) {
-      toast.error("Informe uma quantidade de barras válida");
+  const handleConfirmaDobra = useCallback(async () => {
+    const codigo = codigoBarras.trim();
+    const qtBarrasNum = Number(qtBarrasDialog);
+
+    if (!codigo || !qtBarrasNum || qtBarrasNum <= 0) {
+      toast.error("Informe uma quantidade válida.");
+      inputQtBarrasRef.current?.focus();
       return;
     }
 
@@ -110,13 +82,15 @@ export default function DobraMateriaisBipagem() {
     try {
       const result = await biparDobra({
         codigoBarras: codigo,
-        numBonus,
         qtBarras: qtBarrasNum,
       });
       const rowId = Math.random().toString(36).slice(2) + Date.now().toString(36);
       const reg = result.dobraRegistrada;
       setDobras((prev) => [{ ...reg, _rowId: rowId }, ...prev]);
+      
       setCodigoBarras("");
+      setIsModalOpen(false);
+      
       playBeep(true);
       toast.success("Dobra registrada!");
 
@@ -127,7 +101,6 @@ export default function DobraMateriaisBipagem() {
         flashTimerRef.current = null;
       }, 2000);
 
-      queryClient.refetchQueries({ queryKey: ["bonus-produtos", numBonus] }).catch(() => {});
     } catch (err: unknown) {
       playBeep(false);
 
@@ -158,18 +131,16 @@ export default function DobraMateriaisBipagem() {
       toast.error(msg);
     } finally {
       setBipando(false);
-      barrasRef.current?.focus();
+      if (!isModalOpen) barrasRef.current?.focus();
     }
-  }, [codigoBarras, qtBarras, numBonus, numBonusValido, queryClient]);
+  }, [codigoBarras, qtBarrasDialog, isModalOpen]);
 
   const handleBarrasKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleBipar();
+      handleBiparInitial();
     }
   };
-
-  if (!numBonusValido) return null;
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_97%)]">
@@ -177,7 +148,7 @@ export default function DobraMateriaisBipagem() {
         <div className="container flex max-w-5xl flex-wrap items-center gap-3 py-4">
           <button
             type="button"
-            onClick={() => navigate("/dobra-materiais")}
+            onClick={() => navigate("/")}
             className="industrial-btn-ghost shrink-0 !px-3 !py-2"
           >
             <svg
@@ -193,18 +164,15 @@ export default function DobraMateriaisBipagem() {
               <path d="M19 12H5" />
               <path d="M12 19l-7-7 7-7" />
             </svg>
-            Voltar
+            Início
           </button>
           <h1 className="min-w-0 flex-1 text-lg font-bold leading-tight text-[hsl(222_47%_11%)] sm:text-xl">
-            <span className="text-[#1e40af]">Dobra #{numBonus}</span>
-            <span className="text-muted-foreground"> — </span>
-            <span>{tituloFornecedor}</span>
+            <span className="text-[#1e40af]">Dobra de Materiais</span>
           </h1>
           {dobras.length > 0 && (
             <div className="flex w-full items-center justify-end sm:w-auto sm:flex-initial">
               <span className="rounded-full bg-[#1e40af]/10 px-4 py-1.5 text-sm font-semibold text-[#1e40af]">
-                {dobras.length} dobra{dobras.length !== 1 ? "s" : ""} registrada
-                {dobras.length !== 1 ? "s" : ""}
+                {dobras.length} dobra{dobras.length !== 1 ? "s" : ""} na sessão
               </span>
             </div>
           )}
@@ -212,37 +180,11 @@ export default function DobraMateriaisBipagem() {
       </header>
 
       <main className="container max-w-5xl space-y-6 py-6">
-        <BonusProdutosTable
-          produtos={produtosLinhas}
-          loading={produtosLoading}
-          error={
-            produtosErro && produtosErrorObj
-              ? produtosErrorObj instanceof Error
-                ? produtosErrorObj
-                : new Error(String(produtosErrorObj))
-              : null
-          }
-          onRetry={() => refetchProdutos()}
-        />
 
         <div className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-6 shadow-md">
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-semibold text-[hsl(215_16%_47%)]">
-              QUANTIDADE DE BARRAS
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={qtBarras}
-              onChange={(e) => setQtBarras(e.target.value)}
-              placeholder="Ex: 10"
-              className="industrial-input max-w-xs"
-              autoComplete="off"
-            />
-          </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-[hsl(215_16%_47%)]">
-              CÓDIGO DE BARRAS
+              CÓDIGO DE BARRAS DA ETIQUETA
             </label>
             <input
               ref={barrasRef}
@@ -250,36 +192,85 @@ export default function DobraMateriaisBipagem() {
               value={codigoBarras}
               onChange={(e) => setCodigoBarras(e.target.value)}
               onKeyDown={handleBarrasKeyDown}
-              placeholder="Escaneie ou digite e pressione Enter"
-              className="industrial-input font-mono"
+              placeholder="Escaneie ou digite e pressione Enter..."
+              className="industrial-input font-mono md:text-lg"
               autoComplete="off"
               disabled={bipando}
             />
           </div>
         </div>
 
+        <Dialog open={isModalOpen} onOpenChange={(val) => {
+           setIsModalOpen(val);
+           if (!val) { setCodigoBarras(""); setTimeout(() => barrasRef.current?.focus(), 100); }
+        }}>
+          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>Quantidade da Dobra</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="mb-4 text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
+                Etiqueta: {codigoBarras}
+              </p>
+              <label className="mb-2 block text-sm font-semibold text-[hsl(215_16%_47%)]">
+                Qtd. Real Contada na Dobra
+              </label>
+              <input
+                ref={inputQtBarrasRef}
+                type="number"
+                min="1"
+                value={qtBarrasDialog}
+                onChange={(e) => setQtBarrasDialog(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleConfirmaDobra();
+                  }
+                }}
+                placeholder="Ex. 10"
+                className="industrial-input md:text-lg"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button 
+                className="industrial-btn-ghost px-4 py-2" 
+                onClick={() => { setIsModalOpen(false); setCodigoBarras(""); setTimeout(() => barrasRef.current?.focus(), 100); }}
+                disabled={bipando}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="industrial-btn-primary px-4 py-2" 
+                onClick={handleConfirmaDobra}
+                disabled={bipando}
+              >
+                {bipando ? "Salvando..." : "Confirmar"}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {dobras.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[hsl(214_32%_91%)] bg-white p-8 text-center text-lg text-muted-foreground">
-            Nenhuma dobra registrada ainda. Escaneie um código de barras acima.
+            Aguardando a bipagem de uma etiqueta para registro de dobra...
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[hsl(214_32%_91%)] bg-white shadow-sm">
             <table className="w-full min-w-[800px] text-left text-sm md:text-base">
               <thead>
                 <tr className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
+                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Bônus Lincado</th>
                   <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Código de Barras</th>
                   <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Produto</th>
                   <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
                   <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Série</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Barras</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Status</th>
+                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd (Real)</th>
                 </tr>
               </thead>
               <tbody>
                 {dobras.map((d) => {
                   const flash = flashingRowId === d._rowId;
-                  const statusInfo = STATUS_MAP[d.status] ?? { label: d.status, className: "bg-muted text-muted-foreground" };
                   return (
                     <tr
                       key={d._rowId}
@@ -289,17 +280,12 @@ export default function DobraMateriaisBipagem() {
                           : "even:bg-[hsl(210_40%_98%)]"
                       }`}
                     >
+                      <td className="px-4 py-3 font-bold text-blue-600">#{d.pcBonusc?.numBonus ?? "N/A"}</td>
                       <td className="px-4 py-3 font-mono text-xs md:text-sm">{d.codigoBarras}</td>
                       <td className="px-4 py-3 font-medium">{d.codProd}</td>
                       <td className="px-4 py-3">{d.numLote}</td>
                       <td className="px-4 py-3">{d.serie}</td>
-                      <td className="px-4 py-3 tabular-nums">{d.pesoTotal}</td>
-                      <td className="px-4 py-3 tabular-nums">{d.qtBarras}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusInfo.className}`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
+                      <td className="px-4 py-3 font-bold tabular-nums text-emerald-700">{d.qtBarras}</td>
                     </tr>
                   );
                 })}

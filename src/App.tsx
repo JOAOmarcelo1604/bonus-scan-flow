@@ -8,8 +8,9 @@ import RecebimentoBonusLista from "./pages/RecebimentoBonusLista.tsx";
 import RecebimentoBonusBipagem from "./pages/RecebimentoBonusBipagem.tsx";
 import Auditoria from "./pages/Auditoria.tsx";
 import AprovacaoBonus from "./pages/AprovacaoBonus.tsx";
-import DobraMateriaisLista from "./pages/DobraMateriaisLista.tsx";
+
 import DobraMateriaisBipagem from "./pages/DobraMateriaisBipagem.tsx";
+import AberturaMaterialBipagem from "./pages/AberturaMaterialBipagem.tsx";
 import Inventario from "./pages/Inventario.tsx";
 import InventarioRegistro from "./pages/InventarioRegistro.tsx";
 import InventarioAprovacao from "./pages/InventarioAprovacao.tsx";
@@ -29,8 +30,8 @@ const App = () => (
           <Route path="/recebimento-bonus/:numBonus" element={<RecebimentoBonusBipagem />} />
           <Route path="/auditoria" element={<Auditoria />} />
           <Route path="/aprovacao-bonus" element={<AprovacaoBonus />} />
-          <Route path="/dobra-materiais" element={<DobraMateriaisLista />} />
-          <Route path="/dobra-materiais/:numBonus" element={<DobraMateriaisBipagem />} />
+          <Route path="/dobra-materiais" element={<DobraMateriaisBipagem />} />
+          <Route path="/abertura-material" element={<AberturaMaterialBipagem />} />
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/inventario/registro" element={<InventarioRegistro />} />
           <Route path="/inventario/aprovacao" element={<InventarioAprovacao />} />

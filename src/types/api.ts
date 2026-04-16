@@ -49,7 +49,6 @@ export interface AuditoriaModel {
 
 export interface DobraBiparRequest {
   codigoBarras: string;
-  numBonus: number;
   qtBarras: number;
 }
 
@@ -139,3 +138,33 @@ export interface ImprimirEtiquetaRequest {
   numero_etiqueta: string;
   impressora: string;
 }
+export interface AberturaBiparRequest {
+  codigoBarras: string;
+  qtBarras: number;
+}
+
+export interface AberturaRegistrada {
+  id: number;
+  codigoBarras: string;
+  codProd: string;
+  numLote: string;
+  serie: string;
+  qtBarras: number;
+  pesoTotal: number;
+  status: string;
+  dtAbertura: string;
+  pcBonusc: { numBonus: number };
+}
+
+export interface AberturaBiparResponse {
+  aberturaRegistrada: AberturaRegistrada;
+  dadosParseados: {
+    codigoProduto: string;
+    lote: string;
+    peso: string;
+    serie: string;
+  };
+}
+
+export type AberturaRegistradaComLinha = AberturaRegistrada & { _rowId: string };
+
