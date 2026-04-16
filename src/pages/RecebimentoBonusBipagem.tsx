@@ -17,6 +17,8 @@ import { AuditoriaButton } from "@/components/AuditoriaButton";
 import { playBeep } from "@/lib/beep";
 import { normalizarListaProdutosBonus } from "@/lib/bonusProduto";
 
+import { GerarEtiquetaModal } from "@/components/GerarEtiquetaModal";
+
 function nomeFornecedorCard(fornecedorCompleto: string) {
   const idx = fornecedorCompleto.indexOf(" - ");
   if (idx === -1) return fornecedorCompleto.trim();
@@ -81,6 +83,7 @@ export default function RecebimentoBonusBipagem() {
   const [etiquetas, setEtiquetas] = useState<EtiquetaLidaComLinha[]>([]);
   const [bipando, setBipando] = useState(false);
   const [flashingRowId, setFlashingRowId] = useState<string | null>(null);
+  const [gerarModalOpen, setGerarModalOpen] = useState(false);
 
   const barrasRef = useRef<HTMLInputElement>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,14 +122,14 @@ export default function RecebimentoBonusBipagem() {
     };
   }, []);
 
-  const handleBipar = useCallback(async () => {
-    if (!numBonusValido || !codigoBarras.trim()) return;
+  const execBipar = useCallback(async (codigo: string) => {
+    if (!numBonusValido || !codigo) return;
 
     setBipando(true);
 
     try {
       const result = await biparEtiqueta({
-        codigoBarras: codigoBarras.trim(),
+        codigoBarras: codigo,
         numBonus,
       });
       const rowId = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -172,11 +175,16 @@ export default function RecebimentoBonusBipagem() {
       }
 
       toast.error(msg);
+      throw err;
     } finally {
       setBipando(false);
       barrasRef.current?.focus();
     }
-  }, [codigoBarras, numBonus, numBonusValido, queryClient]);
+  }, [numBonus, numBonusValido, queryClient]);
+
+  const handleBipar = useCallback(() => {
+    execBipar(codigoBarras.trim()).catch(() => {});
+  }, [codigoBarras, execBipar]);
 
   const handleBarrasKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -252,9 +260,18 @@ export default function RecebimentoBonusBipagem() {
         />
 
         <div className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-6 shadow-md">
-          <label className="mb-2 block text-sm font-semibold text-[hsl(215_16%_47%)]">
-            CÓDIGO DE BARRAS
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-semibold text-[hsl(215_16%_47%)]">
+              CÓDIGO DE BARRAS
+            </label>
+            <button 
+              type="button" 
+              onClick={() => setGerarModalOpen(true)}
+              className="text-sm font-medium text-[#1e40af] hover:underline"
+            >
+              Etiqueta Ilegível? Gerar Nova
+            </button>
+          </div>
           <input
             ref={barrasRef}
             type="text"
@@ -278,6 +295,13 @@ export default function RecebimentoBonusBipagem() {
           />
         </div>
       </main>
+
+      <GerarEtiquetaModal 
+        open={gerarModalOpen} 
+        onOpenChange={setGerarModalOpen} 
+        numBonus={numBonus}
+        onBiparManual={execBipar}
+      />
     </div>
   );
 }

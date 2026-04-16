@@ -10,11 +10,15 @@ import type {
   BonusDisponivel,
   DobraBiparRequest,
   DobraBiparResponse,
-  InventarioResumo,
   InventarioItem,
   InventarioBiparRequest,
   InventarioReprovarRequest,
+  InventarioResumo,
+  GerarEtiquetaRequest,
+  GerarEtiquetaResponse,
+  ImprimirEtiquetaRequest,
 } from "@/types/api";
+
 
 const api = axios.create({
   baseURL: "http://localhost:8088",
@@ -386,4 +390,15 @@ export async function carregarInventarioRegistroPagina(): Promise<InventarioPagi
 
 export async function atualizarStatusDobra(id: number, status: string): Promise<void> {
   await api.put(`/api/dobra/status/${id}`, { status });
+}
+
+/* ── Geração de Etiquetas Customizadas ── */
+
+export async function gerarEtiquetaCustomizada(data: GerarEtiquetaRequest): Promise<GerarEtiquetaResponse> {
+  const res = await api.post<GerarEtiquetaResponse>("/api/bonus/gerar-etiqueta", data);
+  return res.data;
+}
+
+export async function imprimirEtiqueta(data: ImprimirEtiquetaRequest): Promise<void> {
+  await axios.post("https://api.etiquetas.grupopapa.com/v1/etiquetas/imprimir/entrada", data);
 }

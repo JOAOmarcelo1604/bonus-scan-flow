@@ -117,3 +117,25 @@ export interface InventarioBiparRequest {
 export interface InventarioReprovarRequest {
   observacao: string;
 }
+
+/* ── Geração de Etiquetas Customizadas ── */
+
+export interface GerarEtiquetaRequest {
+  numBonus: number;
+  codigoProduto: string;
+  tipoGeracao: string;
+  pesoOuQuantidade: string;
+}
+
+export interface GerarEtiquetaResponse {
+  codigoBarrasGerado: string;
+  codFornec: number;
+}
+
+export interface ImprimirEtiquetaRequest {
+  codigo_produto: string;
+  numero_bonus: number;
+  peso: string | number;
+  numero_etiqueta: string;
+  impressora: string;
+}
