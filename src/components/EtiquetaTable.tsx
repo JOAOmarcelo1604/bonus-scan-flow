@@ -39,7 +39,14 @@ export function EtiquetaTable({ etiquetas, flashingRowId }: EtiquetaTableProps) 
                     : "even:bg-[hsl(210_40%_98%)]"
                 }`}
               >
-                <td className="px-4 py-3 font-mono text-xs md:text-sm">{e.codigoBarras}</td>
+                <td className="px-4 py-3 font-mono text-xs md:text-sm">
+                  <span>{e.codigoBarras}</span>
+                  {e._anterior && (
+                    <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-amber-700">
+                      Bipada anteriormente
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 font-medium">{e.codigoProduto}</td>
                 <td className="px-4 py-3">{e.lote}</td>
                 <td className="px-4 py-3">{e.serie}</td>

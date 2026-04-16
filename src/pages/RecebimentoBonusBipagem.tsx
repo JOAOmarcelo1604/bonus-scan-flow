@@ -65,11 +65,17 @@ export default function RecebimentoBonusBipagem() {
     [produtosRaw],
   );
 
-  const { data: etiquetasExistentes } = useQuery({
+  const { data: etiquetasExistentes, error: erroEtiquetasExistentes } = useQuery({
     queryKey: ["etiquetas-bonus", numBonus],
     queryFn: () => listarEtiquetasByBonus(numBonus),
     enabled: numBonusValido,
   });
+
+  useEffect(() => {
+    if (erroEtiquetasExistentes) {
+      console.error("[etiquetas-bonus] erro ao carregar etiquetas anteriores:", erroEtiquetasExistentes);
+    }
+  }, [erroEtiquetasExistentes]);
 
   const [codigoBarras, setCodigoBarras] = useState("");
   const [etiquetas, setEtiquetas] = useState<EtiquetaLidaComLinha[]>([]);
@@ -93,6 +99,7 @@ export default function RecebimentoBonusBipagem() {
       const existentes: EtiquetaLidaComLinha[] = etiquetasExistentes.map((e) => ({
         ...e,
         _rowId: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        _anterior: true,
       }));
       setEtiquetas((prev) => {
         const codigos = new Set(prev.map((p) => p.codigoBarras));
@@ -231,6 +238,8 @@ export default function RecebimentoBonusBipagem() {
       <main className="container max-w-5xl space-y-6 py-6">
         <BonusProdutosTable
           produtos={produtosLinhas}
+          etiquetas={etiquetas}
+          pesoTotalBonus={bonusMeta?.PESOTOTAL ? parseFloat(String(bonusMeta.PESOTOTAL).replace(",", ".")) || 0 : undefined}
           loading={produtosLoading}
           error={
             produtosErro && produtosErrorObj

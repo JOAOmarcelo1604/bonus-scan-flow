@@ -89,8 +89,9 @@ export async function rejeitarAuditoria(id: number, observacao: string): Promise
 export async function listarEtiquetasByBonus(numBonus: number): Promise<EtiquetaLida[]> {
   const res = await api.get<unknown>(`/etiqueta-lida/bonus/${numBonus}`);
   const body = res.data;
-  if (!Array.isArray(body)) return [];
-  return body.map((item) => normalizarEtiquetaLidaApi(item));
+  console.log("[listarEtiquetasByBonus] resposta bruta:", body);
+  const arr = normalizarArrayRespostaEtiquetas(body);
+  return arr.map((item) => normalizarEtiquetaLidaApi(item));
 }
 
 export async function listarEtiquetas(): Promise<EtiquetaLida[]> {
@@ -210,8 +211,14 @@ function normalizarArrayRespostaEtiquetas(body: unknown): unknown[] {
   if (Array.isArray(body)) return body;
   if (body && typeof body === "object") {
     const o = body as Record<string, unknown>;
-    const arr = o.data ?? o.content ?? o.itens ?? o.items;
+    const arr =
+      o.data ?? o.content ?? o.itens ?? o.items ??
+      o.etiquetasBipadas ?? o.etiquetas ?? o.result ?? o.results ??
+      o.etiquetasLidas ?? o.registros ?? o.rows;
     if (Array.isArray(arr)) return arr;
+    for (const v of Object.values(o)) {
+      if (Array.isArray(v) && v.length > 0) return v;
+    }
   }
   return [];
 }

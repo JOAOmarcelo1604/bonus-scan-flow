@@ -25,7 +25,11 @@ export interface EtiquetaLida {
 }
 
 /** Linha na tabela de bipagem (id estável para destaque visual). */
-export type EtiquetaLidaComLinha = EtiquetaLida & { _rowId: string };
+export type EtiquetaLidaComLinha = EtiquetaLida & {
+  _rowId: string;
+  /** true quando a etiqueta já havia sido bipada em sessão anterior (bônus reprovado/reaberto). */
+  _anterior?: boolean;
+};
 
 export interface AuditoriaRequest {
   numBonus: number;

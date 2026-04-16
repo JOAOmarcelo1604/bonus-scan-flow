@@ -16,6 +16,8 @@ export interface BonusProdutoLinha {
   qtdEntradaInicial: number;
   lote: string;
   fornecedor: string;
+  /** Peso total esperado para este produto no bônus. */
+  pesoTotal: number;
 }
 
 /** Chaves em minúsculo → valor (JSON costuma preservar casing; unificamos). */
@@ -221,6 +223,17 @@ export function normalizarProdutoBonus(raw: unknown, index: number): BonusProdut
     ]),
     lote: pickStr(lower, ["lote", "nrolote", "nr_lote", "lotefabricacao"]),
     fornecedor: pickStr(lower, ["fornecedor", "nomefornecedor", "nmfornecedor", "fornec"]),
+    pesoTotal: pickNum(lower, [
+      "pesototal",
+      "peso_total",
+      "peso",
+      "pesobruto",
+      "peso_bruto",
+      "pesoliquido",
+      "peso_liquido",
+      "qt_peso",
+      "qtpeso",
+    ]),
   };
 }
 

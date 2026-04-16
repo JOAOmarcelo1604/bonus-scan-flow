@@ -1,18 +1,44 @@
+import { useMemo } from "react";
 import type { BonusProdutoLinha } from "@/lib/bonusProduto";
+import type { EtiquetaLidaComLinha } from "@/types/api";
 
 interface BonusProdutosTableProps {
   produtos: BonusProdutoLinha[];
+  etiquetas?: EtiquetaLidaComLinha[];
+  pesoTotalBonus?: number;
   loading?: boolean;
   error?: Error | null;
   onRetry?: () => void;
 }
 
+function formatPeso(valor: number): string {
+  if (valor === 0) return "0";
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function BonusProdutosTable({
   produtos,
+  etiquetas = [],
+  pesoTotalBonus,
   loading,
   error,
   onRetry,
 }: BonusProdutosTableProps) {
+  const pesoBipadoPorProduto = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const e of etiquetas) {
+      const cod = e.codigoProduto.trim();
+      if (!cod) continue;
+      const peso = parseFloat(String(e.peso).replace(",", ".")) || 0;
+      mapa.set(cod, (mapa.get(cod) ?? 0) + peso);
+    }
+    return mapa;
+  }, [etiquetas]);
+
+  const pesoBipadoTotal = useMemo(
+    () => etiquetas.reduce((acc, e) => acc + (parseFloat(String(e.peso).replace(",", ".")) || 0), 0),
+    [etiquetas],
+  );
   if (loading) {
     return (
       <div className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-8 text-center text-lg text-muted-foreground">
@@ -54,12 +80,18 @@ export function BonusProdutosTable({
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Descrição</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd NF</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Entrada</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Total</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Bipado</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Fornecedor</th>
           </tr>
         </thead>
         <tbody>
-          {produtos.map((p) => (
+          {produtos.map((p) => {
+            const bipado = pesoBipadoPorProduto.get(p.codigo) ?? 0;
+            const pesoRef = p.pesoTotal || 0;
+            const completo = pesoRef > 0 && bipado >= pesoRef;
+            return (
               <tr
                 key={p.rowKey}
                 className="border-b border-[hsl(214_32%_91%)] last:border-0 even:bg-[hsl(210_40%_98%)]"
@@ -70,11 +102,34 @@ export function BonusProdutosTable({
                 <td className="px-4 py-3 tabular-nums font-semibold text-[#1e40af]">
                   {p.qtdEntradaInicial}
                 </td>
+                <td className="px-4 py-3 tabular-nums">
+                  {pesoRef > 0 ? formatPeso(pesoRef) : "—"}
+                </td>
+                <td className={`px-4 py-3 tabular-nums font-semibold ${completo ? "text-emerald-600" : bipado > 0 ? "text-[#1e40af]" : "text-muted-foreground"}`}>
+                  {formatPeso(bipado)}
+                </td>
                 <td className="px-4 py-3">{p.lote || "—"}</td>
                 <td className="px-4 py-3">{p.fornecedor || "—"}</td>
               </tr>
-          ))}
+            );
+          })}
         </tbody>
+        {(pesoTotalBonus != null && pesoTotalBonus > 0) && (
+          <tfoot>
+            <tr className="border-t-2 border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
+              <td colSpan={4} className="px-4 py-3 text-right font-bold text-[hsl(215_16%_35%)]">
+                Total Bônus
+              </td>
+              <td className="px-4 py-3 tabular-nums font-bold">
+                {formatPeso(pesoTotalBonus)}
+              </td>
+              <td className={`px-4 py-3 tabular-nums font-bold ${pesoBipadoTotal >= pesoTotalBonus ? "text-emerald-600" : "text-[#1e40af]"}`}>
+                {formatPeso(pesoBipadoTotal)}
+              </td>
+              <td colSpan={2} />
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );
