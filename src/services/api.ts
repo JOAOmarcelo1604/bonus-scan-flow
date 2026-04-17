@@ -1,6 +1,7 @@
 import axios from "axios";
 import { extrairNumBonusCodigoBarras, somenteDigitos } from "@/lib/extrairNumBonusCodigoBarras";
 import { normalizarListaAuditorias } from "@/lib/normalizarAuditoria";
+import { etiquetaPesoFromCache, rememberEtiquetaPeso } from "@/lib/etiquetaPesoCache";
 import { normalizarEtiquetaLidaApi } from "@/lib/normalizarEtiquetaLida";
 import type {
   BiparRequest,
@@ -66,6 +67,7 @@ export async function biparEtiqueta(data: BiparRequest): Promise<EtiquetaLida> {
   if (!e.codigoBarras.trim()) {
     e.codigoBarras = data.codigoBarras.trim();
   }
+  rememberEtiquetaPeso(data.numBonus, e.codigoBarras, e.peso);
   return e;
 }
 
@@ -97,7 +99,11 @@ export async function listarEtiquetasByBonus(numBonus: number): Promise<Etiqueta
   const body = res.data;
   console.log("[listarEtiquetasByBonus] resposta bruta:", body);
   const arr = normalizarArrayRespostaEtiquetas(body);
-  return arr.map((item) => normalizarEtiquetaLidaApi(item));
+  return arr.map((item) => normalizarEtiquetaLidaApi(item)).map((e) => {
+    if ((e.peso ?? "").trim()) return e;
+    const cached = etiquetaPesoFromCache(numBonus, e.codigoBarras);
+    return cached ? { ...e, peso: cached } : e;
+  });
 }
 
 export async function listarEtiquetas(): Promise<EtiquetaLida[]> {

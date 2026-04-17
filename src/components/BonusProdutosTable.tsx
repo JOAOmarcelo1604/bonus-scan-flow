@@ -5,7 +5,6 @@ import type { EtiquetaLidaComLinha } from "@/types/api";
 interface BonusProdutosTableProps {
   produtos: BonusProdutoLinha[];
   etiquetas?: EtiquetaLidaComLinha[];
-  pesoTotalBonus?: number;
   loading?: boolean;
   error?: Error | null;
   onRetry?: () => void;
@@ -19,7 +18,6 @@ function formatPeso(valor: number): string {
 export function BonusProdutosTable({
   produtos,
   etiquetas = [],
-  pesoTotalBonus,
   loading,
   error,
   onRetry,
@@ -73,14 +71,13 @@ export function BonusProdutosTable({
       <h2 className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_98%)] px-4 py-3 text-base font-bold text-[hsl(222_47%_11%)]">
         Produtos do bônus
       </h2>
-      <table className="w-full min-w-[880px] text-left text-sm md:text-base">
+      <table className="w-full min-w-[760px] text-left text-sm md:text-base">
         <thead>
           <tr className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Código</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Descrição</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd NF</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Entrada</th>
-            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Total</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Bipado</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Fornecedor</th>
@@ -102,9 +99,6 @@ export function BonusProdutosTable({
                 <td className="px-4 py-3 tabular-nums font-semibold text-[#1e40af]">
                   {p.qtdEntradaInicial}
                 </td>
-                <td className="px-4 py-3 tabular-nums">
-                  {pesoRef > 0 ? formatPeso(pesoRef) : "—"}
-                </td>
                 <td className={`px-4 py-3 tabular-nums font-semibold ${completo ? "text-emerald-600" : bipado > 0 ? "text-[#1e40af]" : "text-muted-foreground"}`}>
                   {formatPeso(bipado)}
                 </td>
@@ -114,22 +108,15 @@ export function BonusProdutosTable({
             );
           })}
         </tbody>
-        {(pesoTotalBonus != null && pesoTotalBonus > 0) && (
-          <tfoot>
-            <tr className="border-t-2 border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
-              <td colSpan={4} className="px-4 py-3 text-right font-bold text-[hsl(215_16%_35%)]">
-                Total Bônus
-              </td>
-              <td className="px-4 py-3 tabular-nums font-bold">
-                {formatPeso(pesoTotalBonus)}
-              </td>
-              <td className={`px-4 py-3 tabular-nums font-bold ${pesoBipadoTotal >= pesoTotalBonus ? "text-emerald-600" : "text-[#1e40af]"}`}>
-                {formatPeso(pesoBipadoTotal)}
-              </td>
-              <td colSpan={2} />
-            </tr>
-          </tfoot>
-        )}
+        <tfoot>
+          <tr className="border-t-2 border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
+            <td colSpan={4} className="px-4 py-3 text-right font-bold text-[hsl(215_16%_35%)]">
+              Total Bônus
+            </td>
+            <td className="px-4 py-3 tabular-nums font-bold text-[#1e40af]">{formatPeso(pesoBipadoTotal)}</td>
+            <td colSpan={2} />
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

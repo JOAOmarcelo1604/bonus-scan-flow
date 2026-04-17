@@ -97,16 +97,20 @@ export default function RecebimentoBonusBipagem() {
   }, [numBonusValido, navigate]);
 
   useEffect(() => {
+    jaCarregouExistentes.current = false;
+  }, [numBonus]);
+
+  useEffect(() => {
     if (etiquetasExistentes && etiquetasExistentes.length > 0 && !jaCarregouExistentes.current) {
       jaCarregouExistentes.current = true;
       const existentes: EtiquetaLidaComLinha[] = etiquetasExistentes.map((e) => ({
         ...e,
-        _rowId: Math.random().toString(36).slice(2) + Date.now().toString(36),
+        _rowId: `srv:${e.codigoBarras.trim()}\0${String(e.serie ?? "").trim()}\0${String(e.lote ?? "").trim()}`,
         _anterior: true,
       }));
       setEtiquetas((prev) => {
-        const codigos = new Set(prev.map((p) => p.codigoBarras));
-        const novas = existentes.filter((e) => !codigos.has(e.codigoBarras));
+        const codigos = new Set(prev.map((p) => p.codigoBarras.trim()));
+        const novas = existentes.filter((e) => !codigos.has(e.codigoBarras.trim()));
         return [...prev, ...novas];
       });
     }
@@ -247,7 +251,6 @@ export default function RecebimentoBonusBipagem() {
         <BonusProdutosTable
           produtos={produtosLinhas}
           etiquetas={etiquetas}
-          pesoTotalBonus={bonusMeta?.PESOTOTAL ? parseFloat(String(bonusMeta.PESOTOTAL).replace(",", ".")) || 0 : undefined}
           loading={produtosLoading}
           error={
             produtosErro && produtosErrorObj
