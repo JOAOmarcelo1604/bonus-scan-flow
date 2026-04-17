@@ -3,6 +3,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import PrivateRoute from "@/components/PrivateRoute";
+import Login from "./pages/Login.tsx";
 import Index from "./pages/Index.tsx";
 import RecebimentoBonusLista from "./pages/RecebimentoBonusLista.tsx";
 import RecebimentoBonusBipagem from "./pages/RecebimentoBonusBipagem.tsx";
@@ -23,21 +26,30 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/recebimento-bonus" element={<RecebimentoBonusLista />} />
-          <Route path="/recebimento-bonus/:numBonus" element={<RecebimentoBonusBipagem />} />
-          <Route path="/auditoria" element={<Auditoria />} />
-          <Route path="/aprovacao-bonus" element={<AprovacaoBonus />} />
-          <Route path="/dobra-materiais" element={<DobraMateriaisBipagem />} />
-          <Route path="/abertura-material" element={<AberturaMaterialBipagem />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/inventario/registro" element={<InventarioRegistro />} />
-          <Route path="/inventario/aprovacao" element={<InventarioAprovacao />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Rota pública */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Rotas protegidas */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/recebimento-bonus" element={<RecebimentoBonusLista />} />
+              <Route path="/recebimento-bonus/:numBonus" element={<RecebimentoBonusBipagem />} />
+              <Route path="/auditoria" element={<Auditoria />} />
+              <Route path="/aprovacao-bonus" element={<AprovacaoBonus />} />
+              <Route path="/dobra-materiais" element={<DobraMateriaisBipagem />} />
+              <Route path="/abertura-material" element={<AberturaMaterialBipagem />} />
+              <Route path="/inventario" element={<Inventario />} />
+              <Route path="/inventario/registro" element={<InventarioRegistro />} />
+              <Route path="/inventario/aprovacao" element={<InventarioAprovacao />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

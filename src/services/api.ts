@@ -23,10 +23,33 @@ import type {
 } from "@/types/api";
 
 
+const TOKEN_KEY = "@expedicao:token";
+
 const api = axios.create({
-  baseURL: "http://localhost:8088",
+  baseURL: "",
   timeout: 10000,
 });
+
+/* Interceptor: anexa Bearer token em toda requisição autenticada */
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+/* Interceptor: redireciona para login em caso de 401/403 */
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  },
+);
 
 /** Filial para GET /api/bonus/disponiveis e /api/bonus/disponiveis-apos-auditoria. No futuro: filial do usuário logado. */
 export const COD_FILIAL_RECEBIMENTO_BONUS = 6;

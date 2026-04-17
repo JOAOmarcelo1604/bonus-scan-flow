@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavCard {
   title: string;
@@ -102,14 +103,35 @@ const cards: NavCard[] = [
 
 export default function Index() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card shadow-sm">
-        <div className="container py-6">
-          <h1 className="text-2xl font-bold text-foreground">Sistema de Expedição</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Selecione um módulo para continuar</p>
+        <div className="container flex items-center justify-between py-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Sistema de Expedição</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Selecione um módulo para continuar</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {user && (
+              <span className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{user.userCode}</span>
+                {" · Filial "}
+                {user.companyCode}
+              </span>
+            )}
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 

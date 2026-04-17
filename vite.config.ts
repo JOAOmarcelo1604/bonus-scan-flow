@@ -6,9 +6,23 @@ import path from "path";
 export default defineConfig({
   server: {
     host: "::",
-    port: 8080,
+    port: 5173,
     hmr: {
       overlay: false,
+    },
+    proxy: {
+      "/auth": {
+        target: "http://192.168.254.210:8080",
+        changeOrigin: true,
+      },
+      "/api": {
+        target: "http://10.10.10.123:8088",
+        changeOrigin: true,
+      },
+      "/etiqueta-lida": {
+        target: "http://10.10.10.123:8088",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [react()],
