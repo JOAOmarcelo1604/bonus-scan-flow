@@ -17,7 +17,10 @@ import { AuditoriaButton } from "@/components/AuditoriaButton";
 import { playBeep } from "@/lib/beep";
 import { normalizarListaProdutosBonus } from "@/lib/bonusProduto";
 
+
 import { GerarEtiquetaModal } from "@/components/GerarEtiquetaModal";
+import { SolicitarEtiquetaModal } from "@/components/SolicitarEtiquetaModal";
+import type { BonusProdutoLinha } from "@/lib/bonusProduto";
 
 function nomeFornecedorCard(fornecedorCompleto: string) {
   const idx = fornecedorCompleto.indexOf(" - ");
@@ -84,6 +87,8 @@ export default function RecebimentoBonusBipagem() {
   const [bipando, setBipando] = useState(false);
   const [flashingRowId, setFlashingRowId] = useState<string | null>(null);
   const [gerarModalOpen, setGerarModalOpen] = useState(false);
+  const [solicitarModalOpen, setSolicitarModalOpen] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<BonusProdutoLinha | null>(null);
 
   const barrasRef = useRef<HTMLInputElement>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,6 +265,10 @@ export default function RecebimentoBonusBipagem() {
               : null
           }
           onRetry={() => refetchProdutos()}
+          onSolicitarEtiqueta={(p) => {
+            setProdutoSelecionado(p);
+            setSolicitarModalOpen(true);
+          }}
         />
 
         <div className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-6 shadow-md">
@@ -267,13 +276,6 @@ export default function RecebimentoBonusBipagem() {
             <label className="block text-sm font-semibold text-[hsl(215_16%_47%)]">
               CÓDIGO DE BARRAS
             </label>
-            <button 
-              type="button" 
-              onClick={() => setGerarModalOpen(true)}
-              className="text-sm font-medium text-[#1e40af] hover:underline"
-            >
-              Etiqueta Ilegível? Gerar Nova
-            </button>
           </div>
           <input
             ref={barrasRef}
@@ -305,6 +307,17 @@ export default function RecebimentoBonusBipagem() {
         numBonus={numBonus}
         onBiparManual={execBipar}
       />
+
+      {produtoSelecionado && (
+        <SolicitarEtiquetaModal
+          key={`solicitar-${produtoSelecionado.rowKey}`}
+          open={solicitarModalOpen}
+          onOpenChange={setSolicitarModalOpen}
+          numBonus={numBonus}
+          codProd={Number(produtoSelecionado.codigo.replace(/\D/g, ""))}
+          descricaoProd={produtoSelecionado.descricao}
+        />
+      )}
     </div>
   );
 }

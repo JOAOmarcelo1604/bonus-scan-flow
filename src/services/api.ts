@@ -20,6 +20,7 @@ import type {
   ImprimirEtiquetaRequest,
   AberturaBiparRequest,
   AberturaBiparResponse,
+  SolicitacaoEtiqueta,
 } from "@/types/api";
 
 
@@ -449,4 +450,20 @@ export async function gerarEtiquetaCustomizada(data: GerarEtiquetaRequest): Prom
 
 export async function imprimirEtiqueta(data: ImprimirEtiquetaRequest): Promise<void> {
   await axios.post("https://api.etiquetas.grupopapa.com/v1/etiquetas/imprimir/entrada", data);
+}
+
+/* ── Solicitação de Etiquetas ── */
+
+export async function criarSolicitacaoEtiqueta(data: Partial<SolicitacaoEtiqueta>): Promise<SolicitacaoEtiqueta> {
+  const res = await api.post<SolicitacaoEtiqueta>("/api/solicitacao-etiqueta", data);
+  return res.data;
+}
+
+export async function listarSolicitacoesPendentes(): Promise<SolicitacaoEtiqueta[]> {
+  const res = await api.get<SolicitacaoEtiqueta[]>("/api/solicitacao-etiqueta/pendentes");
+  return res.data;
+}
+
+export async function concluirSolicitacaoEtiqueta(id: number): Promise<void> {
+  await api.put(`/api/solicitacao-etiqueta/concluir/${id}`);
 }

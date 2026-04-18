@@ -168,3 +168,18 @@ export interface AberturaBiparResponse {
 
 export type AberturaRegistradaComLinha = AberturaRegistrada & { _rowId: string };
 
+export interface SolicitacaoEtiqueta {
+  id: number;
+  codFuncSolicitacao: number;
+  codFuncAprovacao?: number;
+  codProd: number;
+  qtde?: number;
+  peso?: number;
+  tipoGeracao: string;
+  numBonus: number;
+  status: string;
+  dtGeracao?: string;
+  dtImpressao?: string;
+  createdAt: string;
+}
+

@@ -11,6 +11,7 @@ import RecebimentoBonusLista from "./pages/RecebimentoBonusLista.tsx";
 import RecebimentoBonusBipagem from "./pages/RecebimentoBonusBipagem.tsx";
 import Auditoria from "./pages/Auditoria.tsx";
 import AprovacaoBonus from "./pages/AprovacaoBonus.tsx";
+import SolicitacoesEtiqueta from "./pages/SolicitacoesEtiqueta.tsx";
 
 import DobraMateriaisBipagem from "./pages/DobraMateriaisBipagem.tsx";
 import AberturaMaterialBipagem from "./pages/AberturaMaterialBipagem.tsx";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/recebimento-bonus/:numBonus" element={<RecebimentoBonusBipagem />} />
               <Route path="/auditoria" element={<Auditoria />} />
               <Route path="/aprovacao-bonus" element={<AprovacaoBonus />} />
+              <Route path="/solicitacoes-etiqueta" element={<SolicitacoesEtiqueta />} />
               <Route path="/dobra-materiais" element={<DobraMateriaisBipagem />} />
               <Route path="/abertura-material" element={<AberturaMaterialBipagem />} />
               <Route path="/inventario" element={<Inventario />} />

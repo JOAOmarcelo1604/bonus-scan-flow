@@ -8,6 +8,7 @@ interface BonusProdutosTableProps {
   loading?: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  onSolicitarEtiqueta?: (prod: BonusProdutoLinha) => void;
 }
 
 function formatPeso(valor: number): string {
@@ -21,6 +22,7 @@ export function BonusProdutosTable({
   loading,
   error,
   onRetry,
+  onSolicitarEtiqueta,
 }: BonusProdutosTableProps) {
   const pesoBipadoPorProduto = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -80,7 +82,7 @@ export function BonusProdutosTable({
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Entrada</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Bipado</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
-            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Fornecedor</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)] text-center">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -103,7 +105,19 @@ export function BonusProdutosTable({
                   {formatPeso(bipado)}
                 </td>
                 <td className="px-4 py-3">{p.lote || "—"}</td>
-                <td className="px-4 py-3">{p.fornecedor || "—"}</td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSolicitarEtiqueta?.(p);
+                    }}
+                    className="rounded bg-[#1e40af]/10 px-3 py-1 text-xs font-bold text-[#1e40af] transition-colors hover:bg-[#1e40af] hover:text-white"
+                    title="Solicitar Nova Etiqueta"
+                  >
+                    Solicitar
+                  </button>
+                </td>
               </tr>
             );
           })}
