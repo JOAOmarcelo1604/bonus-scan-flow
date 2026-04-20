@@ -87,34 +87,35 @@ export interface InventarioResumo {
   separado: number;
 }
 
-/** Linha retornada por GET /api/inventario, /hoje, /pendentes (campos opcionais por endpoint). */
+export interface InventarioModel {
+  id: number;
+  dataReferencia: string;
+  status: string; // ABERTO, EM_APROVACAO, APROVADO, REJEITADO
+  usuarioAbertura: string;
+  pesoTotal: number;
+}
+
+/** Novo modelo de item de inventário (V2) */
 export interface InventarioItem {
   id: number;
+  inventario?: InventarioModel;
+  etiqueta?: string;
+  codProd: string;
+  quantidade: number;
+  statusEtiqueta: string; // RETO, DOBRADO, SOLTO, SEPARADO
+  peso?: number;
+  numPed?: number;
+  codigoFuncionario: string;
+  dataHoraBipagem: string;
+}
+
+/** POST /api/inventario/{id}/registrar-item */
+export interface InventarioRegistrarItemRequest {
   codigoBarras?: string;
-  codProd?: string;
-  numLote?: string;
-  serie?: string;
-  qtBarras?: number;
-  pesoTotal?: number;
-  /** Ex.: RETO, DOBRADO ou código R, D (backend). */
-  status?: string;
-  dtDobra?: string;
-  numBonus?: number;
-  pcBonusc?: { numBonus: number };
-  observacao?: string;
-}
-
-/** POST /api/inventario/bipar */
-export interface InventarioBiparRequest {
-  codigoBarras: string;
   status: string;
-  /** Opcional: o backend pode inferir o bônus pela etiqueta. */
-  numBonus?: number;
-}
-
-/** PUT /api/inventario/reprovar/{id} */
-export interface InventarioReprovarRequest {
-  observacao: string;
+  codProd?: string;
+  quantidade?: number;
+  numPed?: number;
 }
 
 /* ── Geração de Etiquetas Customizadas ── */

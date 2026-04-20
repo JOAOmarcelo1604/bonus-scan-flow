@@ -142,7 +142,7 @@ export function normalizarEtiquetaLidaApi(raw: unknown): EtiquetaLida {
   const rawTopo = raw;
   let o = raw as Record<string, unknown>;
 
-  const shell = o.data ?? o.Data ?? o.result ?? o.Result;
+  const shell = o.data ?? o.Data ?? o.result ?? o.Result ?? o.etiquetaSalva;
   if (shell && typeof shell === "object" && !Array.isArray(shell)) {
     const topNorm = mapaChavesNormalizadas(o);
     const topTemDados =
