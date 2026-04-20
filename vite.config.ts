@@ -15,6 +15,10 @@ export default defineConfig({
         target: "http://192.168.254.210:8080",
         changeOrigin: true,
       },
+      "/api/permissoes": {
+        target: "http://localhost:8088",
+        changeOrigin: true,
+      },
       "/api": {
         target: "http://10.10.10.123:8088",
         changeOrigin: true,

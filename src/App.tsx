@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import PrivateRoute from "@/components/PrivateRoute";
 import Login from "./pages/Login.tsx";
 import Index from "./pages/Index.tsx";
@@ -18,14 +19,16 @@ import AberturaMaterialBipagem from "./pages/AberturaMaterialBipagem.tsx";
 import Inventario from "./pages/Inventario.tsx";
 import InventarioRegistro from "./pages/InventarioRegistro.tsx";
 import InventarioAprovacao from "./pages/InventarioAprovacao.tsx";
+import ControleAcesso from "./pages/ControleAcesso.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <TooltipProvider>
+        <Toaster />
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
@@ -46,6 +49,7 @@ const App = () => (
               <Route path="/inventario" element={<Inventario />} />
               <Route path="/inventario/registro" element={<InventarioRegistro />} />
               <Route path="/inventario/aprovacao" element={<InventarioAprovacao />} />
+              <Route path="/controle-acesso" element={<ControleAcesso />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
@@ -53,6 +57,7 @@ const App = () => (
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

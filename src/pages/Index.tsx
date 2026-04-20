@@ -1,5 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { listarModulosUsuario } from "@/services/api";
+
+// Matrículas que podem acessar o módulo "Controle de Acesso"
+// 471 = JOAO MARCELO, 336 = CESAR FELIPE, 477 = código JWT do JOAO MARCELO
+export const ADMIN_CODES = ["471", "336", "477"];
 
 interface NavCard {
   title: string;
@@ -110,11 +117,47 @@ const cards: NavCard[] = [
       </svg>
     ),
   },
+  {
+    title: "Controle de Acesso",
+    description: "Gerenciar permissões de usuários",
+    path: "/controle-acesso",
+    color: "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Index() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
+  const [modulosPermitidos, setModulosPermitidos] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (user?.userCode) {
+      listarModulosUsuario(Number(user.userCode))
+        .then(modulos => setModulosPermitidos(modulos))
+        .catch(err => {
+          console.error("Erro ao carregar permissões", err);
+          // Se falhar o backend, deixamos todos liberados (null) temporariamente
+          setModulosPermitidos(null);
+        });
+    }
+  }, [user]);
+
+  const isAdmin = ADMIN_CODES.includes(user?.userCode ?? "");
+
+  // Se modulosPermitidos for null (erro/carregando) ou vazio [] (nenhuma permissão cadastrada),
+  // mostra todos os módulos. Só restringe quando há permissões EXPLICITAMENTE configuradas.
+  const visibleCards = cards.filter(card => {
+    // Controle de acesso só aparece para admins
+    if (card.path === "/controle-acesso") return isAdmin;
+    if (!modulosPermitidos || modulosPermitidos.length === 0) return true; 
+    return modulosPermitidos.includes(card.title);
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -133,6 +176,7 @@ export default function Index() {
                 {user.companyCode}
               </span>
             )}
+            <ThemeToggle />
             <button
               onClick={logout}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
@@ -149,7 +193,7 @@ export default function Index() {
       {/* Cards */}
       <main className="container flex-1 py-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card, i) => (
+          {visibleCards.map((card, i) => (
             <button
               key={card.path}
               onClick={() => navigate(card.path)}

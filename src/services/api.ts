@@ -467,3 +467,24 @@ export async function listarSolicitacoesPendentes(): Promise<SolicitacaoEtiqueta
 export async function concluirSolicitacaoEtiqueta(id: number): Promise<void> {
   await api.put(`/api/solicitacao-etiqueta/concluir/${id}`);
 }
+
+/* ── Controle de Acesso ── */
+
+export interface UsuarioWinthor {
+  matricula: number;
+  nome: string;
+}
+
+export async function listarUsuariosWinthor(): Promise<UsuarioWinthor[]> {
+  const res = await api.get<UsuarioWinthor[]>("/api/permissoes/usuarios");
+  return res.data;
+}
+
+export async function listarModulosUsuario(matricula: number): Promise<string[]> {
+  const res = await api.get<string[]>(`/api/permissoes/${matricula}`);
+  return res.data;
+}
+
+export async function salvarModulosUsuario(matricula: number, modulos: string[]): Promise<void> {
+  await api.post(`/api/permissoes/${matricula}`, modulos);
+}
