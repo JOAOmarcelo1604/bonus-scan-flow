@@ -20,11 +20,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://10.10.10.123:8088",
+        target: "http://localhost:8088",
         changeOrigin: true,
       },
       "/etiqueta-lida": {
-        target: "http://10.10.10.123:8088",
+        target: "http://localhost:8088",
         changeOrigin: true,
       },
     },

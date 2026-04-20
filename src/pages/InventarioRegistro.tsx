@@ -4,50 +4,36 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import axios from "axios";
 import {
-  biparInventario,
+  abrirInventario,
   carregarInventarioRegistroPagina,
   enviarInventarioAprovacao,
-  resolverNumBonusParaInventario,
+  registrarItemInventario,
 } from "@/services/api";
 import { playBeep } from "@/lib/beep";
+import { useAuth } from "@/contexts/AuthContext";
 
-const STATUS_BIPAGEM = [
-  { value: "RETO", label: "RETO" },
-  { value: "DOBRADO", label: "DOBRADO" },
-  { value: "SOLTO", label: "SOLTO" },
-  { value: "SEPARADO", label: "SEPARADO" },
+const STATUS_OPCOES = [
+  { value: "RETO", label: "RETO (Etiqueta)" },
+  { value: "DOBRADO", label: "DOBRADO (Etiqueta)" },
+  { value: "SOLTO", label: "SOLTO (Manual)" },
+  { value: "SEPARADO", label: "SEPARADO (Manual + Pedido)" },
 ] as const;
 
 const REGISTRO_KEY = ["inventario-registro"] as const;
 
-function formatarData(iso: string | undefined) {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
-}
-
-function labelStatus(s: string | undefined) {
-  if (!s) return "—";
-  const u = s.toUpperCase();
-  if (u === "R" || u === "RETO") return "RETO";
-  if (u === "D" || u === "DOBRADO") return "DOBRADO";
-  if (u === "S" || u === "SOLTO") return "SOLTO";
-  if (u === "P" || u === "SEPARADO") return "SEPARADO";
-  return s;
-}
-
 export default function InventarioRegistro() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [codigoBarras, setCodigoBarras] = useState("");
+  const { user } = useAuth();
+  
   const [statusBip, setStatusBip] = useState<string>("RETO");
-  const [bipando, setBipando] = useState(false);
+  const [codigoBarras, setCodigoBarras] = useState("");
+  const [codProd, setCodProd] = useState("");
+  const [quantidade, setQuantidade] = useState<number>(1);
+  const [numPed, setNumPed] = useState("");
+  
+  const [processando, setProcessando] = useState(false);
   const barrasRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    barrasRef.current?.focus();
-  }, []);
 
   const {
     data: pagina,
@@ -57,277 +43,290 @@ export default function InventarioRegistro() {
   } = useQuery({
     queryKey: REGISTRO_KEY,
     queryFn: carregarInventarioRegistroPagina,
+    refetchInterval: 10000,
   });
 
-  const resumo = pagina?.resumo;
+  const ativo = pagina?.ativo;
   const itens = pagina?.itens ?? [];
-  const indisponivel = pagina && !pagina.endpointInventarioDisponivel;
+  const resumo = pagina?.resumo;
 
-  const enviarMut = useMutation({
-    mutationFn: enviarInventarioAprovacao,
+  useEffect(() => {
+    if (ativo) {
+        barrasRef.current?.focus();
+    }
+  }, [ativo]);
+
+  const abrirMut = useMutation({
+    mutationFn: () => abrirInventario(user?.userCode || "SISTEMA"),
     onSuccess: () => {
-      toast.success("Enviado para aprovação.");
+      toast.success("Inventário iniciado!");
       queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
-      queryClient.invalidateQueries({ queryKey: ["inventario-pendentes"] });
-      queryClient.invalidateQueries({ queryKey: ["inventario-pagina"] });
     },
-    onError: (err) => {
-      const msg = axios.isAxiosError(err)
-        ? typeof err.response?.data === "string"
-          ? err.response.data
-          : (err.response?.data as { message?: string })?.message
-        : null;
-      toast.error(msg || "Não foi possível enviar para aprovação.");
-    },
+    onError: () => toast.error("Erro ao iniciar inventário."),
   });
 
-  const handleBipar = useCallback(async () => {
-    const cod = codigoBarras.trim();
-    if (!cod) {
-      toast.error("Informe o código de barras.");
-      return;
-    }
-
-    setBipando(true);
-    try {
-      const numBonus = await resolverNumBonusParaInventario(cod);
-      if (numBonus == null || numBonus <= 0) {
-        playBeep(false);
-        toast.error(
-          "Não foi possível identificar o bônus desta etiqueta. Confira se ela já teve entrada no sistema e se o leitor leu o código completo.",
-        );
-        return;
-      }
-
-      await biparInventario({
-        codigoBarras: cod,
-        status: statusBip,
-        numBonus,
-      });
-      setCodigoBarras("");
-      playBeep(true);
-      toast.success("Etiqueta bipada no inventário.");
+  const enviarAprovacaoMut = useMutation({
+    mutationFn: (id: number) => enviarInventarioAprovacao(id),
+    onSuccess: () => {
+      toast.success("Inventário enviado para aprovação.");
       queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
-      queryClient.invalidateQueries({ queryKey: ["inventario-pagina"] });
-    } catch (err: unknown) {
-      playBeep(false);
-      const ax = err as { response?: { data?: unknown; status?: number } };
-      const raw = ax?.response?.data;
-      let msg = "Erro ao bipar";
-      if (typeof raw === "string" && raw.trim()) msg = raw;
-      else if (raw && typeof raw === "object") {
-        const r = raw as Record<string, unknown>;
-        const detail = r.message ?? r.error ?? r.erro ?? r.detail;
-        if (detail) msg = String(detail);
+    },
+    onError: () => toast.error("Erro ao enviar para aprovação."),
+  });
+
+  const handleRegistrar = useCallback(async () => {
+    if (!ativo) return;
+    
+    const usuario = user?.userCode || "SISTEMA";
+    setProcessando(true);
+
+    try {
+      const payload: any = { status: statusBip };
+
+      if (statusBip === "RETO" || statusBip === "DOBRADO") {
+        if (!codigoBarras.trim()) {
+            toast.error("Informe a etiqueta.");
+            return;
+        }
+        payload.codigoBarras = codigoBarras.trim();
+      } else {
+        if (!codProd.trim()) {
+            toast.error("Informe o produto.");
+            return;
+        }
+        payload.codProd = codProd.trim();
+        payload.quantidade = quantidade;
+        if (statusBip === "SEPARADO") {
+            if (!numPed.trim()) {
+                toast.error("Informe o número do pedido.");
+                return;
+            }
+            payload.numPed = Number(numPed);
+        }
       }
-      if (ax?.response?.status) msg += ` (HTTP ${ax.response.status})`;
-      toast.error(msg);
+
+      await registrarItemInventario(ativo.id, payload, usuario);
+      
+      playBeep(true);
+      toast.success("Registrado com sucesso!");
+      
+      // Limpar campos
+      setCodigoBarras("");
+      // Não limpamos codProd e numPed para facilitar contagem sequencial se o usuário quiser
+      
+      queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
+    } catch (err: any) {
+      playBeep(false);
+      const msg = err.response?.data || "Erro ao registrar.";
+      toast.error(typeof msg === 'string' ? msg : "Erro no registro.");
     } finally {
-      setBipando(false);
+      setProcessando(false);
       barrasRef.current?.focus();
     }
-  }, [codigoBarras, statusBip, queryClient]);
+  }, [ativo, codigoBarras, codProd, quantidade, numPed, statusBip, user, queryClient]);
 
-  const cards = [
-    { label: "RETO", count: resumo?.reto ?? 0, bg: "bg-blue-50 border-blue-200", text: "text-blue-700", badge: "bg-blue-600" },
-    { label: "DOBRADO", count: resumo?.dobrado ?? 0, bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-600" },
-    { label: "SOLTO", count: resumo?.solto ?? 0, bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", badge: "bg-yellow-600" },
-    { label: "SEPARADO", count: resumo?.separado ?? 0, bg: "bg-purple-50 border-purple-200", text: "text-purple-700", badge: "bg-purple-600" },
-  ];
+  if (isLoading) return <div className="p-10 text-center">Carregando inventário...</div>;
+
+  const isManual = statusBip === "SOLTO" || statusBip === "SEPARADO";
+  const isSeparado = statusBip === "SEPARADO";
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_97%)]">
       <header className="sticky top-0 z-10 border-b border-[hsl(214_32%_91%)] bg-white shadow-sm">
         <div className="container flex max-w-5xl flex-wrap items-center gap-3 py-4">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="industrial-btn-ghost shrink-0 !px-3 !py-2"
-            aria-label="Início"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+          <button onClick={() => navigate("/")} className="industrial-btn-ghost shrink-0 !px-3 !py-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold tracking-tight text-[hsl(222_47%_11%)] sm:text-2xl">
-            Registro de inventário
-          </h1>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate("/inventario")}
-              className="industrial-btn-ghost text-sm"
-            >
-              Consulta
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/inventario/aprovacao")}
-              className="industrial-btn-ghost text-sm"
-            >
-              Aprovação
+          <h1 className="text-xl font-bold text-[hsl(222_47%_11%)]">Inventário de Vergalhões</h1>
+          <div className="ml-auto flex gap-2">
+            <button onClick={() => navigate("/inventario/aprovacao")} className="industrial-btn-ghost text-sm">
+              Visão Supervisor
             </button>
           </div>
         </div>
       </header>
 
       <main className="container max-w-5xl space-y-6 py-6">
-        {indisponivel && (
-          <div
-            role="status"
-            className="rounded-xl border border-amber-300/80 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-          >
-            <p className="font-semibold">Inventário não disponível neste servidor</p>
-            <p className="mt-1 text-amber-900/90">
-              As rotas <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-xs">GET /api/inventario/resumo</code> e{" "}
-              <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-xs">GET /api/inventario/hoje</code> retornaram 404.
-            </p>
-          </div>
-        )}
-
-        <section className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[hsl(222_47%_11%)]">Bipar etiqueta</h2>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Escolha o status uma vez; o foco fica no código de barras para bipar em sequência (Enter confirma). O
-            sistema identifica o bônus a partir da própria etiqueta (ou da etiqueta já cadastrada no recebimento).
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="w-full sm:max-w-[220px]">
-              <label className="mb-1 block text-sm font-semibold text-[hsl(215_16%_47%)]">Status</label>
-              <select
-                value={statusBip}
-                onChange={(e) => {
-                  setStatusBip(e.target.value);
-                  requestAnimationFrame(() => barrasRef.current?.focus());
-                }}
-                className="industrial-input w-full"
-                disabled={bipando}
-              >
-                {STATUS_BIPAGEM.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-0 flex-1">
-              <label className="mb-1 block text-sm font-semibold text-[hsl(215_16%_47%)]">
-                Código de barras
-              </label>
-              <input
-                ref={barrasRef}
-                type="text"
-                inputMode="text"
-                value={codigoBarras}
-                onChange={(e) => setCodigoBarras(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleBipar();
-                  }
-                }}
-                className="industrial-input w-full font-mono text-base"
-                placeholder="Bipe ou cole a etiqueta"
-                autoComplete="off"
-                spellCheck={false}
-                disabled={bipando}
-              />
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
+        {!ativo ? (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-10 text-center">
+            <h2 className="mb-2 text-xl font-bold text-blue-900">Nenhum Inventário Ativo</h2>
+            <p className="mb-6 text-blue-800">Inicie uma nova contagem para começar a registrar os materiais.</p>
             <button
-              type="button"
-              disabled={bipando}
-              onClick={handleBipar}
-              className="industrial-btn-primary"
+                disabled={abrirMut.isPending}
+                onClick={() => abrirMut.mutate()}
+                className="industrial-btn-primary"
             >
-              {bipando ? "Bipando…" : "Bipar"}
-            </button>
-            <button
-              type="button"
-              disabled={enviarMut.isPending || indisponivel}
-              onClick={() => enviarMut.mutate()}
-              className="industrial-btn-success"
-            >
-              {enviarMut.isPending ? "Enviando…" : "Enviar para aprovação"}
+              {abrirMut.isPending ? "Iniciando..." : "Iniciar Inventário de Hoje"}
             </button>
           </div>
-        </section>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <div
-              key={c.label}
-              className={`rounded-xl border-2 p-4 ${c.bg}`}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-bold uppercase ${c.text}`}>{c.label}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold text-white ${c.badge}`}>
-                  {c.count}
+        ) : (
+          <>
+            <section className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Registro de Materiais</h2>
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                  ID SESSÃO: #{ativo.id}
                 </span>
               </div>
-              <p className={`mt-1 text-2xl font-bold tabular-nums ${c.text}`}>{c.count}</p>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="col-span-full border-b pb-4">
+                  <label className="mb-1 block text-sm font-semibold text-muted-foreground">Tipo de Contagem</label>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUS_OPCOES.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                            setStatusBip(opt.value);
+                            setCodigoBarras("");
+                        }}
+                        className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                          statusBip === opt.value
+                            ? "bg-blue-600 text-white shadow-md ring-2 ring-blue-300"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {!isManual ? (
+                  <div className="col-span-full">
+                    <label className="mb-1 block text-sm font-semibold text-muted-foreground">Código de Barras (Etiqueta)</label>
+                    <input
+                      ref={barrasRef}
+                      type="text"
+                      value={codigoBarras}
+                      onChange={(e) => setCodigoBarras(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleRegistrar()}
+                      className="industrial-input w-full font-mono text-lg"
+                      placeholder="Bipe a etiqueta aqui..."
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-sm font-semibold text-muted-foreground">Código Produto (Simplex)</label>
+                      <input
+                        type="text"
+                        value={codProd}
+                        onChange={(e) => setCodProd(e.target.value)}
+                        className="industrial-input w-full"
+                        placeholder="Ex: 12345"
+                      />
+                    </div>
+                    <div className="sm:col-span-1">
+                      <label className="mb-1 block text-sm font-semibold text-muted-foreground">Quant. Barras</label>
+                      <input
+                        type="number"
+                        value={quantidade}
+                        onChange={(e) => setQuantidade(Number(e.target.value))}
+                        className="industrial-input w-full"
+                        min={1}
+                      />
+                    </div>
+                    {isSeparado && (
+                      <div className="sm:col-span-1">
+                        <label className="mb-1 block text-sm font-semibold text-muted-foreground">Nº Pedido</label>
+                        <input
+                          type="text"
+                          value={numPed}
+                          onChange={(e) => setNumPed(e.target.value)}
+                          className="industrial-input w-full"
+                          placeholder="Ex: 98765"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  disabled={processando}
+                  onClick={handleRegistrar}
+                  className="industrial-btn-primary min-w-[120px]"
+                >
+                  {processando ? "Salvando..." : "Registrar"}
+                </button>
+                <button
+                  disabled={enviarAprovacaoMut.isPending}
+                  onClick={() => {
+                    if (window.confirm("Deseja finalizar a contagem e enviar para aprovação?")) {
+                        enviarAprovacaoMut.mutate(ativo.id);
+                    }
+                  }}
+                  className="industrial-btn-success ml-auto"
+                >
+                  Finalizar Inventário
+                </button>
+              </div>
+            </section>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+               {[
+                 { label: "RETO", count: resumo?.reto || 0, color: "blue" },
+                 { label: "DOBRADO", count: resumo?.dobrado || 0, color: "emerald" },
+                 { label: "SOLTO", count: resumo?.solto || 0, color: "amber" },
+                 { label: "SEPARADO", count: resumo?.separado || 0, color: "purple" },
+               ].map((c) => (
+                 <div key={c.label} className={`rounded-xl border-2 border-${c.color}-200 bg-${c.color}-50 p-4`}>
+                    <p className={`text-xs font-bold uppercase text-${c.color}-700`}>{c.label}</p>
+                    <p className={`text-3xl font-bold text-${c.color}-900`}>{c.count}</p>
+                 </div>
+               ))}
             </div>
-          ))}
-        </div>
 
-        {isLoading && (
-          <p className="text-center text-lg text-muted-foreground">Carregando itens de hoje…</p>
-        )}
-
-        {isError && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-            <p className="font-medium text-destructive">Erro ao carregar dados.</p>
-            <button type="button" onClick={() => refetch()} className="industrial-btn-primary mt-4">
-              Tentar novamente
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !isError && itens.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border bg-white p-10 text-center text-muted-foreground">
-            {indisponivel ? "Sem dados até o backend responder." : "Nenhum item registrado hoje."}
-          </div>
-        )}
-
-        {!isLoading && !isError && itens.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-[hsl(214_32%_91%)] bg-white shadow-sm">
-            <table className="w-full min-w-[800px] text-left text-sm md:text-base">
-              <thead>
-                <tr className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
-                  <th className="px-4 py-3 font-semibold">ID</th>
-                  <th className="px-4 py-3 font-semibold">Código de barras</th>
-                  <th className="px-4 py-3 font-semibold">Produto</th>
-                  <th className="px-4 py-3 font-semibold">Bônus</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-[hsl(214_32%_91%)] last:border-0 even:bg-[hsl(210_40%_98%)]"
-                  >
-                    <td className="px-4 py-3 tabular-nums font-medium">{item.id}</td>
-                    <td className="px-4 py-3 font-mono text-xs md:text-sm">{item.codigoBarras ?? "—"}</td>
-                    <td className="px-4 py-3">{item.codProd ?? "—"}</td>
-                    <td className="px-4 py-3 tabular-nums">{item.numBonus ?? item.pcBonusc?.numBonus ?? "—"}</td>
-                    <td className="px-4 py-3">{labelStatus(item.status)}</td>
-                    <td className="px-4 py-3">{formatarData(item.dtDobra)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <section className="rounded-xl border border-[hsl(214_32%_91%)] bg-white p-5 shadow-sm">
+                <h3 className="mb-4 text-md font-bold text-muted-foreground">Últimos Registros (Sessão #{ativo.id})</h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-gray-600">
+                            <tr>
+                                <th className="px-4 py-2 font-semibold">Produto</th>
+                                <th className="px-4 py-2 font-semibold">Tipo</th>
+                                <th className="px-4 py-2 font-semibold">Qtd</th>
+                                <th className="px-4 py-2 font-semibold">Etiqueta/Pedido</th>
+                                <th className="px-4 py-2 font-semibold">Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {itens.length === 0 ? (
+                                <tr><td colSpan={5} className="py-8 text-center text-gray-400 italic">Nenhum registro nesta sessão</td></tr>
+                            ) : (
+                                [...itens].reverse().slice(0, 10).map((item) => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-2 font-medium">{item.codProd}</td>
+                                        <td className="px-4 py-2">
+                                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                                item.statusEtiqueta === 'RETO' ? 'bg-blue-100 text-blue-700' :
+                                                item.statusEtiqueta === 'DOBRADO' ? 'bg-emerald-100 text-emerald-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {item.statusEtiqueta}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2 font-bold">{item.quantidade}</td>
+                                        <td className="px-4 py-2 text-xs font-mono">
+                                            {item.etiqueta || (item.numPed ? `PED: ${item.numPed}` : 'N/A')}
+                                        </td>
+                                        <td className="px-4 py-2 text-gray-400">
+                                            {new Date(item.dataHoraBipagem).toLocaleTimeString()}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+          </>
         )}
       </main>
     </div>

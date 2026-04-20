@@ -1,243 +1,169 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { carregarInventarioPagina } from "@/services/api";
-
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  R: { label: "RETO", className: "bg-blue-100 text-blue-800 border border-blue-300" },
-  RETO: { label: "RETO", className: "bg-blue-100 text-blue-800 border border-blue-300" },
-  D: { label: "DOBRADO", className: "bg-emerald-100 text-emerald-800 border border-emerald-300" },
-  DOBRADO: { label: "DOBRADO", className: "bg-emerald-100 text-emerald-800 border border-emerald-300" },
-  S: { label: "SOLTO", className: "bg-yellow-100 text-yellow-800 border border-yellow-300" },
-  SOLTO: { label: "SOLTO", className: "bg-yellow-100 text-yellow-800 border border-yellow-300" },
-  P: { label: "SEPARADO", className: "bg-purple-100 text-purple-800 border border-purple-300" },
-  SEPARADO: { label: "SEPARADO", className: "bg-purple-100 text-purple-800 border border-purple-300" },
-};
-
-const STATUS_OPTIONS = [
-  { value: "RETO", label: "RETO" },
-  { value: "DOBRADO", label: "DOBRADO" },
-  { value: "SOLTO", label: "SOLTO" },
-  { value: "SEPARADO", label: "SEPARADO" },
-] as const;
-
-type FiltroStatus = "" | (typeof STATUS_OPTIONS)[number]["value"];
-
-function formatarData(iso: string | undefined) {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
-}
+import { listarInventariosHoje, listarItensInventario } from "@/services/api";
+import { InventarioModel } from "@/types/api";
 
 export default function Inventario() {
   const navigate = useNavigate();
-  const [filtro, setFiltro] = useState<FiltroStatus>("");
+  const [selecionado, setSelecionado] = useState<InventarioModel | null>(null);
 
-  const {
-    data: pagina,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
-    queryKey: ["inventario-pagina", filtro],
-    queryFn: () => carregarInventarioPagina(filtro || undefined),
+  const { data: invs = [], isLoading, isError } = useQuery({
+    queryKey: ["inventarios-hoje"],
+    queryFn: listarInventariosHoje,
+    refetchInterval: 30000,
   });
 
-  const resumo = pagina?.resumo;
-  const itens = pagina?.itens ?? [];
-  const inventarioIndisponivel = pagina && !pagina.endpointInventarioDisponivel;
-
-  const cards = [
-    { key: "RETO" as FiltroStatus, label: "RETO", count: resumo?.reto ?? 0, desc: "precisam ser dobrados", bg: "bg-blue-50 border-blue-200", text: "text-blue-700", badge: "bg-blue-600" },
-    { key: "DOBRADO" as FiltroStatus, label: "DOBRADO", count: resumo?.dobrado ?? 0, desc: "já foram dobrados", bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-600" },
-    { key: "SOLTO" as FiltroStatus, label: "SOLTO", count: resumo?.solto ?? 0, desc: "jogados no galpão", bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-700", badge: "bg-yellow-600" },
-    { key: "SEPARADO" as FiltroStatus, label: "SEPARADO", count: resumo?.separado ?? 0, desc: "tem pedido vinculado", bg: "bg-purple-50 border-purple-200", text: "text-purple-700", badge: "bg-purple-600" },
-  ];
+  const { data: itens = [], isLoading: loadingItens } = useQuery({
+    queryKey: ["inventario-itens", selecionado?.id],
+    queryFn: () => selecionado ? listarItensInventario(selecionado.id) : Promise.resolve([]),
+    enabled: !!selecionado,
+  });
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_97%)]">
       <header className="sticky top-0 z-10 border-b border-[hsl(214_32%_91%)] bg-white shadow-sm">
         <div className="container flex max-w-6xl flex-wrap items-center gap-3 py-4">
           <button
-            type="button"
             onClick={() => navigate("/")}
             className="industrial-btn-ghost !px-3 !py-2"
-            aria-label="Início"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold tracking-tight text-[hsl(222_47%_11%)] sm:text-2xl">
-            Inventário — consulta
-          </h1>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate("/inventario/registro")}
-              className="industrial-btn-ghost text-sm"
-            >
-              Registro
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/inventario/aprovacao")}
-              className="industrial-btn-ghost text-sm"
-            >
-              Aprovação
-            </button>
+          <h1 className="text-xl font-bold text-[hsl(222_47%_11%)]">Monitor de Inventário</h1>
+          <div className="ml-auto flex gap-2">
+            <button onClick={() => navigate("/inventario/registro")} className="industrial-btn-ghost text-sm">Registro</button>
+            <button onClick={() => navigate("/inventario/aprovacao")} className="industrial-btn-ghost text-sm">Aprovação</button>
           </div>
         </div>
       </header>
 
-      <main className="container max-w-6xl space-y-6 py-6">
-        {inventarioIndisponivel && (
-          <div
-            role="status"
-            className="rounded-xl border border-amber-300/80 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-          >
-            <p className="font-semibold">Inventário não disponível neste servidor</p>
-            <p className="mt-1 text-amber-900/90">
-              As rotas <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-xs">GET /api/inventario</code> e{" "}
-              <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-xs">GET /api/inventario/resumo</code> retornaram
-              404. Verifique se a API (porta 8088) está no ar.
-            </p>
-          </div>
-        )}
+      <main className="container max-w-6xl space-y-6 py-6 font-sans">
+        <div className="grid gap-8 md:grid-cols-3">
+          {/* Coluna Esquerda: Lista de Sessões */}
+          <section className="md:col-span-1 space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-700">Sessões de Hoje</h2>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" title="Tempo Real"></div>
+            </div>
+            
+            {isLoading && <div className="p-10 text-center text-gray-400">Carregando sessões...</div>}
+            
+            {!isLoading && invs.length === 0 && (
+                <div className="p-10 text-center bg-white border border-dashed rounded-xl text-gray-400 italic">
+                    Nenhum inventário hoje.
+                </div>
+            )}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => setFiltro(filtro === c.key ? "" : c.key)}
-              className={`rounded-xl border-2 p-5 text-left transition-all duration-200 hover:shadow-md ${c.bg} ${
-                filtro === c.key ? "ring-2 ring-offset-2 ring-[#1e40af] shadow-md" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-bold uppercase tracking-wide ${c.text}`}>
-                  {c.label}
-                </span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${c.badge}`}>
-                  {c.count}
-                </span>
+            <div className="space-y-3">
+                {invs.map(inv => (
+                <button 
+                    key={inv.id} 
+                    onClick={() => setSelecionado(inv)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all duration-200 ${
+                        selecionado?.id === inv.id 
+                        ? 'border-blue-500 bg-blue-50 shadow-md ring-1 ring-blue-200' 
+                        : 'bg-white hover:border-gray-300 hover:shadow-sm border-gray-200'
+                    }`}
+                >
+                    <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-blue-900">Sessão #{inv.id}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase ${
+                        inv.status === 'APROVADO' ? 'bg-green-100 text-green-700' : 
+                        inv.status === 'ABERTO' ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
+                    }`}>
+                        {inv.status}
+                    </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        {inv.usuarioAbertura}
+                    </div>
+                    <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
+                        <span className="text-[10px] text-gray-400 font-mono">{new Date(inv.dataReferencia).toLocaleDateString()}</span>
+                        <span className="text-sm font-bold text-gray-700">{inv.pesoTotal?.toFixed(2)} <small className="font-normal text-gray-400">kg</small></span>
+                    </div>
+                </button>
+                ))}
+            </div>
+          </section>
+
+          {/* Coluna Direita: Detalhes da Sessão */}
+          <section className="md:col-span-2 space-y-4">
+            <h2 className="text-lg font-bold text-gray-700">Explorador de Materiais</h2>
+            
+            {!selecionado ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400 p-10">
+                <svg className="w-16 h-16 mb-4 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <p className="text-lg font-medium">Selecione uma sessão de inventário ao lado</p>
+                <p className="text-sm">Os itens registrados aparecerão detalhados aqui.</p>
               </div>
-              <p className={`mt-2 text-3xl font-bold tabular-nums ${c.text}`}>{c.count} itens</p>
-              <p className="mt-1 text-xs text-muted-foreground">{c.desc}</p>
-            </button>
-          ))}
+            ) : (
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
+                    <div className="bg-gray-50 border-b p-4 flex justify-between items-center">
+                        <div>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Sessão Selecionada</span>
+                            <h3 className="text-xl font-black text-gray-800">#{selecionado.id}</h3>
+                        </div>
+                        <div className="text-right">
+                             <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Total Registrado</span>
+                             <p className="text-xl font-black text-blue-600">{itens.length} <small className="text-xs font-normal">ITENS</small></p>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        {loadingItens ? (
+                            <div className="p-20 text-center text-gray-400">Carregando itens...</div>
+                        ) : itens.length === 0 ? (
+                            <div className="p-20 text-center text-gray-400 italic">Nenhum item nesta sessão ainda.</div>
+                        ) : (
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 font-bold border-b">
+                                    <tr>
+                                        <th className="px-6 py-3 uppercase tracking-widest text-[10px]">Produto</th>
+                                        <th className="px-6 py-3 uppercase tracking-widest text-[10px]">Tipo</th>
+                                        <th className="px-6 py-3 uppercase tracking-widest text-[10px]">Qtd</th>
+                                        <th className="px-6 py-3 uppercase tracking-widest text-[10px]">Peso Est.</th>
+                                        <th className="px-6 py-3 uppercase tracking-widest text-[10px]">Operador & Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {itens.map(item => (
+                                        <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="px-6 py-4 font-bold text-gray-700">{item.codProd}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                                    item.statusEtiqueta === 'RETO' ? 'bg-blue-100 text-blue-700' :
+                                                    item.statusEtiqueta === 'DOBRADO' ? 'bg-emerald-100 text-emerald-700' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                    {item.statusEtiqueta}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 font-black text-gray-800">{item.quantidade}</td>
+                                            <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.peso?.toFixed(2) || '—'} kg</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-gray-700 text-xs font-semibold">{item.codigoFuncionario}</span>
+                                                    <span className="text-[10px] text-gray-400">{new Date(item.dataHoraBipagem).toLocaleTimeString()}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            )}
+          </section>
         </div>
-
-        {filtro && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              Filtrando por: <strong>{STATUS_MAP[filtro]?.label ?? filtro}</strong> (GET <code className="rounded bg-muted px-1 font-mono text-xs">?status={filtro}</code>)
-            </span>
-            <button
-              type="button"
-              onClick={() => setFiltro("")}
-              className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
-            >
-              Limpar filtro
-            </button>
-          </div>
-        )}
-
-        {isLoading && (
-          <p className="text-center text-lg text-muted-foreground">Carregando inventário…</p>
-        )}
-
-        {isError && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-            <p className="font-medium text-destructive">Erro ao carregar inventário.</p>
-            <button type="button" onClick={() => refetch()} className="industrial-btn-primary mt-4">
-              Tentar novamente
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !isError && itens.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border bg-white p-10 text-center text-muted-foreground">
-            {inventarioIndisponivel
-              ? "Sem dados de inventário até o backend expor as rotas acima."
-              : "Nenhum item encontrado."}
-          </div>
-        )}
-
-        {!isLoading && !isError && itens.length > 0 && (
-          <div className="overflow-x-auto rounded-xl border border-[hsl(214_32%_91%)] bg-white shadow-sm">
-            <table className="w-full min-w-[960px] text-left text-sm md:text-base">
-              <thead>
-                <tr className="border-b border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">ID</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Código de barras</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Produto</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Série</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Barras</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Status</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Data</th>
-                  <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Bônus</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map((item) => {
-                  const st = item.status ?? "";
-                  const statusInfo = STATUS_MAP[st] ?? {
-                    label: st || "—",
-                    className: "bg-muted text-muted-foreground",
-                  };
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-b border-[hsl(214_32%_91%)] last:border-0 even:bg-[hsl(210_40%_98%)]"
-                    >
-                      <td className="px-4 py-3 tabular-nums font-medium">{item.id}</td>
-                      <td className="px-4 py-3 font-mono text-xs md:text-sm">{item.codigoBarras ?? "—"}</td>
-                      <td className="px-4 py-3 font-medium">{item.codProd ?? "—"}</td>
-                      <td className="px-4 py-3">{item.numLote ?? "—"}</td>
-                      <td className="px-4 py-3">{item.serie ?? "—"}</td>
-                      <td className="px-4 py-3 tabular-nums">{item.pesoTotal ?? "—"}</td>
-                      <td className="px-4 py-3 tabular-nums">{item.qtBarras ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusInfo.className}`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">{formatarData(item.dtDobra)}</td>
-                      <td className="px-4 py-3 tabular-nums">
-                        {item.numBonus ?? item.pcBonusc?.numBonus ?? "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <p className="text-xs text-muted-foreground">
-          Filtros equivalentes:{" "}
-          {STATUS_OPTIONS.map((o) => (
-            <span key={o.value}>
-                <code className="rounded bg-muted px-1 font-mono">status={o.value}</code>
-              {o.value !== "SEPARADO" ? " · " : ""}
-            </span>
-          ))}
-        </p>
       </main>
     </div>
   );
