@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  papa-expedicao-front:
+    container_name: papa-expedicao-front
+    image: joaomarcelojm/papa-expedicao-front:latest
+    restart: unless-stopped
+    ports:
+      - "33334:80"
+    networks:
+      - papa-expedicao-net
+
+networks:
+  papa-expedicao-net:
+    driver: bridge
