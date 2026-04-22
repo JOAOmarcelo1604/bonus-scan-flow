@@ -169,6 +169,48 @@ export interface AberturaBiparResponse {
 
 export type AberturaRegistradaComLinha = AberturaRegistrada & { _rowId: string };
 
+/* ── Separação de Volumes ── */
+
+export interface PedidoSeparacaoItem {
+  numPed: number;
+  codCli: number;
+  cliente: string;
+  cidade: string;
+  tipoEntrega: string;
+  observacao: string;
+  codProd: string;
+  qt: number;
+  pvenda: number;
+  descricao: string;
+  data: string;
+}
+
+export interface SeparacaoGerarRequest {
+  numPed: number;
+  quantidadeVolumes: number;
+  impressora: string;
+  usuario: string;
+}
+
+export interface VolumeGerado {
+  id: number;
+  numPed: number;
+  numeroVolume: number;
+  codigoVolume: string;
+  totalVolumes: number;
+}
+
+export interface PedidoSeparadoVolume {
+  id: number;
+  numPed: number;
+  numeroVolume: number;
+  codigoVolume: string;
+  statusSaida: boolean;
+  statusInventario: boolean;
+  usuarioGeracao: string;
+  dataGeracao: string;
+}
+
 export interface SolicitacaoEtiqueta {
   id: number;
   codFuncSolicitacao: number;

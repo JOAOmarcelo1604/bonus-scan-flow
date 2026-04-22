@@ -19,6 +19,10 @@ import type {
   GerarEtiquetaRequest,
   GerarEtiquetaResponse,
   ImprimirEtiquetaRequest,
+  PedidoSeparacaoItem,
+  SeparacaoGerarRequest,
+  VolumeGerado,
+  PedidoSeparadoVolume,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -247,6 +251,23 @@ export async function gerarEtiquetaCustomizada(data: GerarEtiquetaRequest): Prom
 }
 export async function imprimirEtiqueta(data: ImprimirEtiquetaRequest): Promise<void> {
   await axios.post("https://api.etiquetas.grupopapa.com/v1/etiquetas/imprimir/entrada", data);
+}
+
+/* ── Separação de Volumes ── */
+
+export async function consultarPedidoSeparacao(numPed: number): Promise<PedidoSeparacaoItem[]> {
+  const res = await api.get<PedidoSeparacaoItem[]>(`/api/separacao/pedido/${numPed}`);
+  return res.data;
+}
+
+export async function gerarVolumesSeparacao(data: SeparacaoGerarRequest): Promise<VolumeGerado[]> {
+  const res = await api.post<VolumeGerado[]>("/api/separacao/gerar-volumes", data);
+  return res.data;
+}
+
+export async function listarVolumesSeparacao(numPed: number): Promise<PedidoSeparadoVolume[]> {
+  const res = await api.get<PedidoSeparadoVolume[]>(`/api/separacao/volumes/${numPed}`);
+  return res.data;
 }
 
 /* ── Solicitação de Etiquetas ── */
