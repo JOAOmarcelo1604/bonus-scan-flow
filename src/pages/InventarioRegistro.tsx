@@ -76,26 +76,29 @@ export default function InventarioRegistro() {
 
   const handleRegistrar = useCallback(async () => {
     if (!ativo) return;
-    
+
     const usuario = user?.userCode || "SISTEMA";
     setProcessando(true);
 
     try {
-      const payload: any = { status: statusBip };
+      const codigo = codigoBarras.trim();
+      let payload: any;
 
-      if (statusBip === "RETO" || statusBip === "DOBRADO") {
-        if (!codigoBarras.trim()) {
+      // QR Code de volume de separação — detectado pelo prefixo independente do modo
+      if (codigo.startsWith("SEP-")) {
+        payload = { codigoBarras: codigo, status: "SEPARADO" };
+      } else if (statusBip === "RETO" || statusBip === "DOBRADO") {
+        if (!codigo) {
             toast.error("Informe a etiqueta.");
             return;
         }
-        payload.codigoBarras = codigoBarras.trim();
+        payload = { status: statusBip, codigoBarras: codigo };
       } else {
         if (!codProd.trim()) {
             toast.error("Informe o produto.");
             return;
         }
-        payload.codProd = codProd.trim();
-        payload.quantidade = quantidade;
+        payload = { status: statusBip, codProd: codProd.trim(), quantidade };
         if (statusBip === "SEPARADO") {
             if (!numPed.trim()) {
                 toast.error("Informe o número do pedido.");
@@ -195,9 +198,12 @@ export default function InventarioRegistro() {
                   </div>
                 </div>
 
-                {!isManual ? (
-                  <div className="col-span-full">
-                    <label className="mb-1 block text-sm font-semibold text-muted-foreground">Código de Barras (Etiqueta)</label>
+                {/* Campo de scan sempre visível — detecta SEP- automaticamente */}
+                <div className="col-span-full">
+                  <label className="mb-1 block text-sm font-semibold text-muted-foreground">
+                    {isManual ? "QR Code de Volume (SEP-...)" : "Código de Barras / QR Code"}
+                  </label>
+                  <div className="relative">
                     <input
                       ref={barrasRef}
                       type="text"
@@ -205,11 +211,18 @@ export default function InventarioRegistro() {
                       onChange={(e) => setCodigoBarras(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleRegistrar()}
                       className="industrial-input w-full font-mono text-lg"
-                      placeholder="Bipe a etiqueta aqui..."
+                      placeholder={isManual ? "Bipe o QR Code do volume (SEP-...)..." : "Bipe a etiqueta aqui..."}
                       autoFocus
                     />
+                    {codigoBarras.startsWith("SEP-") && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                        VOLUME SEP.
+                      </span>
+                    )}
                   </div>
-                ) : (
+                </div>
+
+                {isManual && (
                   <>
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-sm font-semibold text-muted-foreground">Código Produto (Simplex)</label>
