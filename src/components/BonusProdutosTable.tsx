@@ -16,6 +16,12 @@ function formatPeso(valor: number): string {
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function chaveComparavel(s: string): string {
+  const t = (s ?? "").trim();
+  if (!t) return "";
+  return /^\d+$/.test(t) ? t.replace(/^0+/, "") || "0" : t.toLowerCase();
+}
+
 export function BonusProdutosTable({
   produtos,
   etiquetas = [],
@@ -25,15 +31,21 @@ export function BonusProdutosTable({
   onSolicitarEtiqueta,
 }: BonusProdutosTableProps) {
   const pesoBipadoPorProduto = useMemo(() => {
+    const codigoPorChave = new Map<string, string>();
+    for (const p of produtos) {
+      if (p.codigo) codigoPorChave.set(chaveComparavel(p.codigo), p.codigo);
+      if (p.ean) codigoPorChave.set(chaveComparavel(p.ean), p.codigo);
+    }
     const mapa = new Map<string, number>();
     for (const e of etiquetas) {
-      const cod = e.codigoProduto.trim();
-      if (!cod) continue;
+      const chaveEti = chaveComparavel(e.codigoProduto);
+      if (!chaveEti) continue;
+      const codigoDestino = codigoPorChave.get(chaveEti) ?? e.codigoProduto.trim();
       const peso = parseFloat(String(e.peso).replace(",", ".")) || 0;
-      mapa.set(cod, (mapa.get(cod) ?? 0) + peso);
+      mapa.set(codigoDestino, (mapa.get(codigoDestino) ?? 0) + peso);
     }
     return mapa;
-  }, [etiquetas]);
+  }, [etiquetas, produtos]);
 
   const pesoBipadoTotal = useMemo(
     () => etiquetas.reduce((acc, e) => acc + (parseFloat(String(e.peso).replace(",", ".")) || 0), 0),
@@ -79,8 +91,7 @@ export function BonusProdutosTable({
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Código</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Descrição</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd NF</th>
-            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Qtd Entrada</th>
-            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Bipado</th>
+            <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Peso Entrada</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)]">Lote</th>
             <th className="px-4 py-3 font-semibold text-[hsl(215_16%_35%)] text-center">Ações</th>
           </tr>
@@ -98,9 +109,6 @@ export function BonusProdutosTable({
                 <td className="px-4 py-3 font-mono text-xs md:text-sm">{p.codigo}</td>
                 <td className="max-w-[220px] px-4 py-3">{p.descricao || "—"}</td>
                 <td className="px-4 py-3 tabular-nums">{p.qtdNf}</td>
-                <td className="px-4 py-3 tabular-nums font-semibold text-[#1e40af]">
-                  {p.qtdEntradaInicial}
-                </td>
                 <td className={`px-4 py-3 tabular-nums font-semibold ${completo ? "text-emerald-600" : bipado > 0 ? "text-[#1e40af]" : "text-muted-foreground"}`}>
                   {formatPeso(bipado)}
                 </td>
@@ -124,7 +132,7 @@ export function BonusProdutosTable({
         </tbody>
         <tfoot>
           <tr className="border-t-2 border-[hsl(214_32%_91%)] bg-[hsl(210_40%_96%)]">
-            <td colSpan={4} className="px-4 py-3 text-right font-bold text-[hsl(215_16%_35%)]">
+            <td colSpan={3} className="px-4 py-3 text-right font-bold text-[hsl(215_16%_35%)]">
               Total Bônus
             </td>
             <td className="px-4 py-3 tabular-nums font-bold text-[#1e40af]">{formatPeso(pesoBipadoTotal)}</td>

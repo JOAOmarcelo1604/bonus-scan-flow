@@ -126,6 +126,19 @@ export default function RecebimentoBonusBipagem() {
   }, [numBonusValido]);
 
   useEffect(() => {
+    if (!bipando && !gerarModalOpen && !solicitarModalOpen) {
+      barrasRef.current?.focus();
+    }
+  }, [bipando, gerarModalOpen, solicitarModalOpen, etiquetas.length]);
+
+  const handleBarrasBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (bipando || gerarModalOpen || solicitarModalOpen) return;
+    const proximo = e.relatedTarget as HTMLElement | null;
+    if (proximo?.closest('[role="dialog"]')) return;
+    setTimeout(() => barrasRef.current?.focus(), 0);
+  };
+
+  useEffect(() => {
     return () => {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     };
@@ -207,6 +220,12 @@ export default function RecebimentoBonusBipagem() {
     toast.success("Enviado para auditoria com sucesso!");
     setEtiquetas([]);
     setCodigoBarras("");
+    queryClient.setQueryData<BonusDisponivel[]>(
+      ["bonus-disponiveis", COD_FILIAL_RECEBIMENTO_BONUS],
+      (old) => (old ?? []).filter((b) => b.NUMBONUS !== numBonus),
+    );
+    queryClient.invalidateQueries({ queryKey: ["bonus-disponiveis"] });
+    queryClient.invalidateQueries({ queryKey: ["auditoria-pendentes"] });
     navigate("/recebimento-bonus");
   };
 
@@ -283,10 +302,12 @@ export default function RecebimentoBonusBipagem() {
             value={codigoBarras}
             onChange={(e) => setCodigoBarras(e.target.value)}
             onKeyDown={handleBarrasKeyDown}
+            onBlur={handleBarrasBlur}
             placeholder="Escaneie ou digite e pressione Enter"
             className="industrial-input font-mono"
             autoComplete="off"
-            disabled={bipando}
+            autoFocus
+            readOnly={bipando}
           />
         </div>
 
@@ -294,7 +315,7 @@ export default function RecebimentoBonusBipagem() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <AuditoriaButton
-            disabled={etiquetas.length === 0}
+            disabled={false}
             numBonus={numBonus}
             onConfirm={handleEnviarAuditoria}
           />

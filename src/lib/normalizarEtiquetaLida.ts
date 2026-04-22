@@ -52,10 +52,11 @@ function extrairObjetoRegistro(val: unknown): Record<string, unknown> | null {
   return null;
 }
 
-/** Chaves que representam peso da etiqueta (não usar `pesototal` do bônus). */
+/** Chaves que representam peso da etiqueta. `pesototal` é o nome da coluna no backend (EtiquetaLida.pesoTotal). */
 const CHAVES_PESO_FOLHA = new Set(
   [
     "peso",
+    "pesototal",
     "pesobruto",
     "pesoliquido",
     "pesoetiqueta",
@@ -175,6 +176,8 @@ export function normalizarEtiquetaLidaApi(raw: unknown): EtiquetaLida {
 
   let pesoVal = pickStr(m, [
     "peso",
+    "pesototal",
+    "peso_total",
     "pesobruto",
     "peso_liquido",
     "pesoliquido",
@@ -205,6 +208,8 @@ export function normalizarEtiquetaLidaApi(raw: unknown): EtiquetaLida {
   if (!pesoVal) {
     const n = pickNum(m, [
       "peso",
+      "pesototal",
+      "peso_total",
       "pesobruto",
       "peso_liquido",
       "pesoliquido",

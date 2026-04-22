@@ -64,12 +64,21 @@ export function normalizarAuditoriaItem(raw: unknown): AuditoriaModel | null {
     "nrbônus",
   ]);
 
+  const pesoBipado = pickInt(m, [
+    "pesobipado",
+    "peso_bipado",
+    "pesototalbipado",
+    "somapeso",
+    "totalpeso",
+  ]);
+
   return {
     id,
     numBonus,
     nf: pickStr(m, ["nf", "notafiscal", "nrnf", "numeronf", "documento"]),
     status: pickStr(m, ["status", "situacao", "state"]),
     observacao: pickStr(m, ["observacao", "obs", "comentario", "descricao"]),
+    pesoBipado: pesoBipado || undefined,
   };
 }
 

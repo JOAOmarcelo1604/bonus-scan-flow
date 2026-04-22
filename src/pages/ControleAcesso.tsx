@@ -11,11 +11,11 @@ export const MODULOS_SISTEMA = [
   "Aprovação Bônus",
   "Dobra de Materiais",
   "Abertura de Materiais",
+  "Separação de Volumes",
   "Inventário — consulta",
   "Registro de inventário",
   "Aprovação de inventário",
   "Solicitações de Etiquetas",
-  "Separação de Volumes",
 ];
 
 export default function ControleAcesso() {

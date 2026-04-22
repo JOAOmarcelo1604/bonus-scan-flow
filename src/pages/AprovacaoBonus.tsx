@@ -20,6 +20,11 @@ import {
 
 const PENDENTES_KEY = ["auditoria-pendentes"] as const;
 
+function formatPeso(valor: number): string {
+  if (valor === 0) return "0";
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function AprovacaoBonus() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -175,6 +180,12 @@ export default function AprovacaoBonus() {
                 <div>
                   <dt className="font-semibold text-[hsl(215_16%_35%)]">NF</dt>
                   <dd>{a.nf?.trim() ? a.nf : "—"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[hsl(215_16%_35%)]">Peso enviado</dt>
+                  <dd className="tabular-nums text-base font-medium text-[#1e40af]">
+                    {formatPeso(a.pesoBipado ?? 0)}
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-semibold text-[hsl(215_16%_35%)]">Observação</dt>
