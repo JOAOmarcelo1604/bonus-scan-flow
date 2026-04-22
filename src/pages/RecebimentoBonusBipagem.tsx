@@ -315,7 +315,7 @@ export default function RecebimentoBonusBipagem() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <AuditoriaButton
-            disabled={false}
+            disabled={etiquetas.length === 0}
             numBonus={numBonus}
             onConfirm={handleEnviarAuditoria}
           />
