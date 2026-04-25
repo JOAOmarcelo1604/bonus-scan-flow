@@ -213,6 +213,30 @@ export interface PedidoSeparadoVolume {
   dataGeracao: string;
 }
 
+/* ── Relatórios ── */
+
+export interface RelatorioInventarioBitolaItem {
+  dataEntrada: string;
+  codigoProduto: string;
+  nomeProduto: string;
+  codigoBarras: string;
+  como: string;
+  peso: number | null;
+  vias: number;
+  milimetragem: string;
+  status: 'NEW' | 'OK' | 'SAIU' | 'NAO ENCONTRADO';
+}
+
+export interface ReimpressaoLog {
+  id: number;
+  codigoBarras: string;
+  impressora: string;
+  usuario: string;
+  motivo: string;
+  status: 'SUCESSO' | 'FALHA';
+  dtReimpressao: string;
+}
+
 export interface SolicitacaoEtiqueta {
   id: number;
   codFuncSolicitacao: number;

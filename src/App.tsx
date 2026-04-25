@@ -21,6 +21,7 @@ import InventarioRegistro from "./pages/InventarioRegistro.tsx";
 import InventarioAprovacao from "./pages/InventarioAprovacao.tsx";
 import ControleAcesso from "./pages/ControleAcesso.tsx";
 import SeparacaoPage from "./pages/SeparacaoPage.tsx";
+import RelatorioInventarioBitola from "./pages/relatorio/RelatorioInventarioBitola.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/inventario/aprovacao" element={<InventarioAprovacao />} />
               <Route path="/controle-acesso" element={<ControleAcesso />} />
               <Route path="/separacao" element={<SeparacaoPage />} />
+              <Route path="/relatorio/inventario-bitola" element={<RelatorioInventarioBitola />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
