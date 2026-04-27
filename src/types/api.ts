@@ -45,6 +45,8 @@ export interface AuditoriaModel {
   observacao: string;
   /** Soma de `etiqueta_lida.pesoTotal` para o bônus. Vem do GET /api/auditoria/pendentes. */
   pesoBipado?: number;
+  /** Data/hora em que o bônus foi aprovado ou rejeitado. */
+  dataAprovacao?: string;
 }
 
 /* ── Dobra de Materiais ── */

@@ -72,6 +72,27 @@ export function normalizarAuditoriaItem(raw: unknown): AuditoriaModel | null {
     "totalpeso",
   ]);
 
+  let dataAprovacaoRaw: any = undefined;
+  for (const k of ["dataaprovacao", "data_aprovacao", "dtaprovacao", "dt_aprovacao"]) {
+    if (m[k] != null) {
+      dataAprovacaoRaw = m[k];
+      break;
+    }
+  }
+
+  let dataAprovacaoStr: string | undefined = undefined;
+  if (Array.isArray(dataAprovacaoRaw) && dataAprovacaoRaw.length >= 3) {
+    // Jackson serializa LocalDateTime como array [year, month, day, hour, minute, second, nano]
+    const [y, mo, d, h = 0, min = 0, s = 0] = dataAprovacaoRaw;
+    dataAprovacaoStr = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  } else if (typeof dataAprovacaoRaw === "number") {
+    // Timestamp numérico em ms (ex: retorno de java.sql.Timestamp via query nativa)
+    const d = new Date(dataAprovacaoRaw);
+    if (!isNaN(d.getTime())) dataAprovacaoStr = d.toISOString();
+  } else if (dataAprovacaoRaw != null && String(dataAprovacaoRaw).trim() !== "") {
+    dataAprovacaoStr = String(dataAprovacaoRaw).trim();
+  }
+
   return {
     id,
     numBonus,
@@ -79,6 +100,7 @@ export function normalizarAuditoriaItem(raw: unknown): AuditoriaModel | null {
     status: pickStr(m, ["status", "situacao", "state"]),
     observacao: pickStr(m, ["observacao", "obs", "comentario", "descricao"]),
     pesoBipado: pesoBipado || undefined,
+    dataAprovacao: dataAprovacaoStr,
   };
 }
 
