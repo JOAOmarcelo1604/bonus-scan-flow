@@ -16,6 +16,8 @@ export const MODULOS_SISTEMA = [
   "Registro de inventário",
   "Aprovação de inventário",
   "Solicitações de Etiquetas",
+  "Rel. Inventário por Bitola",
+  "Reimpressão de Etiquetas",
 ];
 
 export default function ControleAcesso() {

@@ -23,6 +23,7 @@ import type {
   SeparacaoGerarRequest,
   VolumeGerado,
   PedidoSeparadoVolume,
+  RelatorioInventarioBitolaItem,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -302,4 +303,46 @@ export async function listarModulosUsuario(matricula: number): Promise<string[]>
 
 export async function salvarModulosUsuario(matricula: number, modulos: string[]): Promise<void> {
   await api.post(`/api/permissoes/${matricula}`, modulos);
+}
+
+/* ── Relatórios ── */
+
+export async function listarBitolasSeparacao(): Promise<string[]> {
+  const res = await api.get<string[]>("/api/relatorio/bitolas");
+  return res.data;
+}
+
+export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaItem[]> {
+  const res = await api.get<RelatorioInventarioBitolaItem[]>("/api/relatorio/inventario-bitola", {
+    params: { bitola },
+  });
+  return res.data;
+}
+
+export async function reimprimirEtiqueta(
+  codigoBarras: string,
+  usuario?: string,
+  motivo?: string
+): Promise<void> {
+  await api.post("/api/reimpressao", {
+    codigoBarras,
+    impressora: "ZD230",
+    usuario,
+    motivo,
+  });
+}
+
+export async function historicoReimpressao(codigoBarras: string): Promise<import("@/types/api").ReimpressaoLog[]> {
+  const res = await api.get<import("@/types/api").ReimpressaoLog[]>(`/api/reimpressao/historico/${codigoBarras}`);
+  return res.data;
+}
+
+export async function buscarEtiquetaPorCodigoBarras(codigoBarras: string): Promise<EtiquetaLida | null> {
+  try {
+    const res = await api.get<any>(`/etiqueta-lida/buscar`, { params: { codigoBarras } });
+    return normalizarEtiquetaLidaApi(res.data);
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null;
+    throw e;
+  }
 }

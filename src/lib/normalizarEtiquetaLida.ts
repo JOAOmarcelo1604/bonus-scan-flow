@@ -246,5 +246,6 @@ export function normalizarEtiquetaLidaApi(raw: unknown): EtiquetaLida {
     fornecedor,
     codFornec: pickNum(m, ["codfornec", "cod_fornec", "codfornecedor", "idfornecedor"]),
     numBonus: pickNum(m, ["numbonus", "num_bonus", "numerobonus", "idbonus"]),
+    vias: pickNum(m, ["vias"]) || 1,
   };
 }
