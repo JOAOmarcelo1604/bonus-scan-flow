@@ -16,7 +16,7 @@ const STATUS_OPCOES = [
   { value: "RETO", label: "RETO (Etiqueta)" },
   { value: "DOBRADO", label: "DOBRADO (Etiqueta)" },
   { value: "SOLTO", label: "SOLTO (Manual)" },
-  { value: "SEPARADO", label: "SEPARADO (Manual + Pedido)" },
+  { value: "SEPARADO", label: "SEPARADO (QR Code)" },
 ] as const;
 
 const REGISTRO_KEY = ["inventario-registro"] as const;
@@ -30,7 +30,6 @@ export default function InventarioRegistro() {
   const [codigoBarras, setCodigoBarras] = useState("");
   const [codProd, setCodProd] = useState("");
   const [quantidade, setQuantidade] = useState<number>(1);
-  const [numPed, setNumPed] = useState("");
   
   const [processando, setProcessando] = useState(false);
   const barrasRef = useRef<HTMLInputElement>(null);
@@ -89,34 +88,24 @@ export default function InventarioRegistro() {
         payload = { codigoBarras: codigo, status: "SEPARADO" };
       } else if (statusBip === "RETO" || statusBip === "DOBRADO") {
         if (!codigo) {
-            toast.error("Informe a etiqueta.");
-            return;
+          toast.error("Informe a etiqueta.");
+          return;
         }
         payload = { status: statusBip, codigoBarras: codigo };
       } else {
+        // SOLTO — entrada manual
         if (!codProd.trim()) {
-            toast.error("Informe o produto.");
-            return;
+          toast.error("Informe o produto.");
+          return;
         }
-        payload = { status: statusBip, codProd: codProd.trim(), quantidade };
-        if (statusBip === "SEPARADO") {
-            if (!numPed.trim()) {
-                toast.error("Informe o número do pedido.");
-                return;
-            }
-            payload.numPed = Number(numPed);
-        }
+        payload = { status: "SOLTO", codProd: codProd.trim(), quantidade };
       }
 
       await registrarItemInventario(ativo.id, payload, usuario);
-      
+
       playBeep(true);
       toast.success("Registrado com sucesso!");
-      
-      // Limpar campos
       setCodigoBarras("");
-      // Não limpamos codProd e numPed para facilitar contagem sequencial se o usuário quiser
-      
       queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
     } catch (err: any) {
       playBeep(false);
@@ -126,12 +115,11 @@ export default function InventarioRegistro() {
       setProcessando(false);
       barrasRef.current?.focus();
     }
-  }, [ativo, codigoBarras, codProd, quantidade, numPed, statusBip, user, queryClient]);
+  }, [ativo, codigoBarras, codProd, quantidade, statusBip, user, queryClient]);
 
   if (isLoading) return <div className="p-10 text-center">Carregando inventário...</div>;
 
-  const isManual = statusBip === "SOLTO" || statusBip === "SEPARADO";
-  const isSeparado = statusBip === "SEPARADO";
+  const isManual = statusBip === "SOLTO";
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_97%)]">
@@ -201,7 +189,7 @@ export default function InventarioRegistro() {
                 {/* Campo de scan sempre visível — detecta SEP- automaticamente */}
                 <div className="col-span-full">
                   <label className="mb-1 block text-sm font-semibold text-muted-foreground">
-                    {isManual ? "QR Code de Volume (SEP-...)" : "Código de Barras / QR Code"}
+                    Código de Barras / QR Code
                   </label>
                   <div className="relative">
                     <input
@@ -211,12 +199,12 @@ export default function InventarioRegistro() {
                       onChange={(e) => setCodigoBarras(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleRegistrar()}
                       className="industrial-input w-full font-mono text-lg"
-                      placeholder={isManual ? "Bipe o QR Code do volume (SEP-...)..." : "Bipe a etiqueta aqui..."}
+                      placeholder="Bipe a etiqueta ou QR Code de volume..."
                       autoFocus
                     />
                     {codigoBarras.startsWith("SEP-") && (
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                        VOLUME SEP.
+                        SEPARAÇÃO
                       </span>
                     )}
                   </div>
@@ -244,18 +232,6 @@ export default function InventarioRegistro() {
                         min={1}
                       />
                     </div>
-                    {isSeparado && (
-                      <div className="sm:col-span-1">
-                        <label className="mb-1 block text-sm font-semibold text-muted-foreground">Nº Pedido</label>
-                        <input
-                          type="text"
-                          value={numPed}
-                          onChange={(e) => setNumPed(e.target.value)}
-                          className="industrial-input w-full"
-                          placeholder="Ex: 98765"
-                        />
-                      </div>
-                    )}
                   </>
                 )}
               </div>

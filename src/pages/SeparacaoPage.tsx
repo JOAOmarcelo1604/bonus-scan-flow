@@ -81,7 +81,7 @@ export default function SeparacaoPage() {
   });
 
   const handleConfirmarPedido = useCallback(() => {
-    const num = parseInt(inputPedido.trim(), 10);
+    const num = parseInt(inputPedido.trim().substring(0, 10), 10);
     if (isNaN(num) || num <= 0) {
       toast.error("Número de pedido inválido.");
       return;
