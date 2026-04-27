@@ -22,6 +22,7 @@ export interface EtiquetaLida {
   numBonus: number;
   fornecedor: string;
   codigoBarras: string;
+  vias: number;
 }
 
 /** Linha na tabela de bipagem (id estável para destaque visual). */

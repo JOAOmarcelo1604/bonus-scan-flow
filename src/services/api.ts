@@ -336,3 +336,13 @@ export async function historicoReimpressao(codigoBarras: string): Promise<import
   const res = await api.get<import("@/types/api").ReimpressaoLog[]>(`/api/reimpressao/historico/${codigoBarras}`);
   return res.data;
 }
+
+export async function buscarEtiquetaPorCodigoBarras(codigoBarras: string): Promise<EtiquetaLida | null> {
+  try {
+    const res = await api.get<any>(`/etiqueta-lida/buscar`, { params: { codigoBarras } });
+    return normalizarEtiquetaLidaApi(res.data);
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null;
+    throw e;
+  }
+}
