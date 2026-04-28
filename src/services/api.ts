@@ -172,12 +172,23 @@ function normalizarItemInventario(raw: unknown): InventarioItem {
 
 function normalizarHeaderInventario(raw: unknown): InventarioModel {
   const o = raw as Record<string, unknown>;
+  const dh = o.dataHoraAprovacao;
+  let dataHoraAprovacao: string | undefined;
+  if (typeof dh === "string") dataHoraAprovacao = dh;
+  else if (Array.isArray(dh) && dh.length >= 6) {
+    const [y, m, d, h, min, sec] = dh as number[];
+    dataHoraAprovacao = new Date(y, m - 1, d, h, min, sec).toISOString();
+  }
   return {
     id: Number(o.id) || 0,
     dataReferencia: String(o.dataReferencia || ""),
     status: String(o.status || ""),
     usuarioAbertura: String(o.usuarioAbertura || ""),
     pesoTotal: Number(o.pesoTotal) || 0,
+    usuarioAprovacao: o.usuarioAprovacao != null && String(o.usuarioAprovacao) !== "" ? String(o.usuarioAprovacao) : undefined,
+    dataHoraAprovacao,
+    nomeAbertura: o.nomeAbertura != null && String(o.nomeAbertura) !== "" ? String(o.nomeAbertura).trim() : undefined,
+    nomeAprovacao: o.nomeAprovacao != null && String(o.nomeAprovacao) !== "" ? String(o.nomeAprovacao).trim() : undefined,
   };
 }
 
@@ -211,13 +222,18 @@ export async function enviarInventarioAprovacao(id: number): Promise<void> {
   await api.post(`${API_INVENTARIO}/${id}/enviar-aprovacao`);
 }
 
+export async function listarTodosInventarios(): Promise<InventarioModel[]> {
+  const res = await api.get<unknown>(`${API_INVENTARIO}/todos`);
+  return Array.isArray(res.data) ? res.data.map(normalizarHeaderInventario) : [];
+}
+
 export async function listarInventariosPendentes(): Promise<InventarioModel[]> {
   const res = await api.get<unknown>(`${API_INVENTARIO}/pendentes`);
   return Array.isArray(res.data) ? res.data.map(normalizarHeaderInventario) : [];
 }
 
-export async function aprovarInventario(id: number): Promise<void> {
-  await api.post(`${API_INVENTARIO}/${id}/aprovar`);
+export async function aprovarInventario(id: number, usuario: string): Promise<void> {
+  await api.post(`${API_INVENTARIO}/${id}/aprovar`, undefined, { params: { usuario } });
 }
 
 export async function reprovarInventario(id: number): Promise<void> {

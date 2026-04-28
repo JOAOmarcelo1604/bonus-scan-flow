@@ -98,6 +98,12 @@ export interface InventarioModel {
   status: string; // ABERTO, EM_APROVACAO, APROVADO, REJEITADO
   usuarioAbertura: string;
   pesoTotal: number;
+  /** Preenchido quando status = APROVADO */
+  usuarioAprovacao?: string;
+  dataHoraAprovacao?: string;
+  /** Nome em PCEMPR (quando o código é matrícula) */
+  nomeAbertura?: string;
+  nomeAprovacao?: string;
 }
 
 /** Novo modelo de item de inventário (V2) */
