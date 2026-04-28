@@ -74,7 +74,16 @@ export default function InventarioAprovacao() {
       setSelecionado(null);
       queryClient.invalidateQueries({ queryKey: TODOS_KEY });
     },
-    onError: () => toast.error("Erro ao aprovar inventário."),
+    onError: (err: unknown) => {
+      const msg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: unknown } }).response?.data === "string"
+          ? String((err as { response: { data: string } }).response.data)
+          : "Erro ao aprovar inventário.";
+      toast.error(msg);
+    },
   });
 
   const reprovarMut = useMutation({

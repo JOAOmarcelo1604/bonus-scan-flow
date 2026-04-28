@@ -60,7 +60,16 @@ export default function InventarioRegistro() {
       toast.success("Inventário iniciado!");
       queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
     },
-    onError: () => toast.error("Erro ao iniciar inventário."),
+    onError: (err: unknown) => {
+      const msg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: unknown } }).response?.data === "string"
+          ? String((err as { response: { data: string } }).response.data)
+          : "Erro ao iniciar inventário.";
+      toast.error(msg);
+    },
   });
 
   const enviarAprovacaoMut = useMutation({
@@ -69,7 +78,16 @@ export default function InventarioRegistro() {
       toast.success("Inventário enviado para aprovação.");
       queryClient.invalidateQueries({ queryKey: REGISTRO_KEY });
     },
-    onError: () => toast.error("Erro ao enviar para aprovação."),
+    onError: (err: unknown) => {
+      const msg =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: unknown } }).response?.data === "string"
+          ? String((err as { response: { data: string } }).response.data)
+          : "Erro ao enviar para aprovação.";
+      toast.error(msg);
+    },
   });
 
   const handleRegistrar = useCallback(async () => {
