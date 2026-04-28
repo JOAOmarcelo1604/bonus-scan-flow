@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   type ReactNode,
 } from "react";
@@ -58,24 +57,34 @@ function isTokenExpired(token: string): boolean {
   return payload.exp * 1000 < Date.now();
 }
 
+/**
+ * Restaura JWT do localStorage de forma síncrona no primeiro render.
+ * Evita logout "falso" no Vite/React Fast Refresh: antes, token iniciava null e em alguns casos
+ * isLoading já era false antes do useEffect rodar, acionando PrivateRoute → /login.
+ */
+function readStoredSession(): { token: string | null; user: AuthUser | null } {
+  if (typeof window === "undefined") {
+    return { token: null, user: null };
+  }
+  try {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (!stored) return { token: null, user: null };
+    if (isTokenExpired(stored)) {
+      localStorage.removeItem(TOKEN_KEY);
+      return { token: null, user: null };
+    }
+    return { token: stored, user: extractUser(stored) };
+  } catch {
+    return { token: null, user: null };
+  }
+}
+
 /* ── Provider ── */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  /* Restaurar sessão do localStorage */
-  useEffect(() => {
-    const stored = localStorage.getItem(TOKEN_KEY);
-    if (stored && !isTokenExpired(stored)) {
-      setToken(stored);
-      setUser(extractUser(stored));
-    } else {
-      localStorage.removeItem(TOKEN_KEY);
-    }
-    setIsLoading(false);
-  }, []);
+  const [{ token, user }, setSession] = useState(readStoredSession);
+  /** Sempre false no cliente após init síncrono; mantido para compatibilidade com PrivateRoute. */
+  const [isLoading] = useState(false);
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await axios.post(AUTH_URL, { username, password });
@@ -89,14 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!jwt) throw new Error("Token não retornado pelo servidor de autenticação.");
 
     localStorage.setItem(TOKEN_KEY, jwt);
-    setToken(jwt);
-    setUser(extractUser(jwt));
+    setSession({ token: jwt, user: extractUser(jwt) });
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-    setUser(null);
+    setSession({ token: null, user: null });
   }, []);
 
   return (

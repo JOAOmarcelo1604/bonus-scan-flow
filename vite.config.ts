@@ -16,11 +16,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:8088",
+        target: "http://192.168.254.210:33333",
         changeOrigin: true,
       },
       "/etiqueta-lida": {
-        target: "http://localhost:8088",
+        target: "http://192.168.254.210:33333",
         changeOrigin: true,
       },
     },

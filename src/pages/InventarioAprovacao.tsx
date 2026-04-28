@@ -167,7 +167,9 @@ export default function InventarioAprovacao() {
                                 <td className="px-4 py-2 font-bold">{item.quantidade}</td>
                                 <td className="px-4 py-2">{item.peso?.toFixed(2) || '—'} kg</td>
                                 <td className="px-4 py-2 text-xs font-mono">
-                                    {item.etiqueta || (item.numPed ? `PED: ${item.numPed}` : '—')}
+                                    {item.etiqueta?.startsWith("MAN-")
+                                        ? "Manual"
+                                        : item.etiqueta || (item.numPed ? `PED: ${item.numPed}` : "—")}
                                 </td>
                             </tr>
                         ))}

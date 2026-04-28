@@ -46,7 +46,9 @@ api.interceptors.response.use(
   (error) => {
     if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
       localStorage.removeItem(TOKEN_KEY);
-      window.location.href = "/login";
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

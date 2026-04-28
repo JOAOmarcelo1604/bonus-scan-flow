@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import axios from "axios";
 import {
   abrirInventario,
   carregarInventarioRegistroPagina,
@@ -93,7 +92,8 @@ export default function InventarioRegistro() {
         }
         payload = { status: statusBip, codigoBarras: codigo };
       } else {
-        // SOLTO — entrada manual
+        // SOLTO — entrada manual (nunca enviar código de barras; limpa estado residual do modo etiqueta)
+        setCodigoBarras("");
         if (!codProd.trim()) {
           toast.error("Informe o produto.");
           return;
@@ -187,28 +187,30 @@ export default function InventarioRegistro() {
                 </div>
 
                 {/* Campo de scan sempre visível — detecta SEP- automaticamente */}
-                <div className="col-span-full">
-                  <label className="mb-1 block text-sm font-semibold text-muted-foreground">
-                    Código de Barras / QR Code
-                  </label>
-                  <div className="relative">
-                    <input
-                      ref={barrasRef}
-                      type="text"
-                      value={codigoBarras}
-                      onChange={(e) => setCodigoBarras(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleRegistrar()}
-                      className="industrial-input w-full font-mono text-lg"
-                      placeholder="Bipe a etiqueta ou QR Code de volume..."
-                      autoFocus
-                    />
-                    {codigoBarras.startsWith("SEP-") && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                        SEPARAÇÃO
-                      </span>
-                    )}
+                {statusBip !== "SOLTO" && (
+                  <div className="col-span-full">
+                    <label className="mb-1 block text-sm font-semibold text-muted-foreground">
+                      Código de Barras / QR Code
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={barrasRef}
+                        type="text"
+                        value={codigoBarras}
+                        onChange={(e) => setCodigoBarras(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleRegistrar()}
+                        className="industrial-input w-full font-mono text-lg"
+                        placeholder="Bipe a etiqueta ou QR Code de volume..."
+                        autoFocus
+                      />
+                      {codigoBarras.startsWith("SEP-") && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                          SEPARAÇÃO
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {isManual && (
                   <>
@@ -303,7 +305,9 @@ export default function InventarioRegistro() {
                                         </td>
                                         <td className="px-4 py-2 font-bold">{item.quantidade}</td>
                                         <td className="px-4 py-2 text-xs font-mono">
-                                            {item.etiqueta || (item.numPed ? `PED: ${item.numPed}` : 'N/A')}
+                                            {item.etiqueta?.startsWith("MAN-")
+                                                ? "Manual"
+                                                : item.etiqueta || (item.numPed ? `PED: ${item.numPed}` : "N/A")}
                                         </td>
                                         <td className="px-4 py-2 text-gray-400">
                                             {new Date(item.dataHoraBipagem).toLocaleTimeString()}
