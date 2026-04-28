@@ -1,11 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { buscarRelatorioInventarioBitola, listarBitolasSeparacao } from "@/services/api";
 import type { RelatorioInventarioBitolaItem } from "@/types/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { BotaoReimprimir } from "@/components/BotaoReimprimir";
+
+/** Não encontrado no topo; OK por último; demais situações no meio. */
+function prioridadeOrdenacaoRelatorio(status: string): number {
+  if (status === "NAO ENCONTRADO") return 0;
+  if (status === "OK") return 2;
+  return 1;
+}
 
 const STATUS_CONFIG: Record<string, { label: string; printClass: string; badgeClass: string }> = {
   OK:               { label: "OK",             printClass: "",          badgeClass: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
@@ -39,15 +46,33 @@ function Resumo({ itens, quantidadePrevistaTotal }: { itens: RelatorioInventario
     return acc;
   }, {});
   const pesoTotal = itens.reduce((sum, i) => sum + (i.peso ?? 0), 0);
+  const totalEtiquetas = itens.length;
+  const naoEncontrado = contagem["NAO ENCONTRADO"] ?? 0;
+  const encontradas = totalEtiquetas - naoEncontrado;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 print:flex print:flex-wrap print:gap-6 print:border print:border-black print:p-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7 print:flex print:flex-wrap print:gap-6 print:border print:border-black print:p-3">
       {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
         <div key={key} className="rounded-lg border border-border bg-card p-4 print:rounded-none print:border-0 print:p-0">
           <p className="text-xs text-muted-foreground print:text-black">{cfg.label}</p>
           <p className="mt-1 text-2xl font-bold text-foreground print:text-xl print:text-black">{contagem[key] ?? 0}</p>
         </div>
       ))}
+      <div
+        className={`rounded-lg border bg-card p-4 print:rounded-none print:border-0 print:p-0 ${
+          naoEncontrado > 0 ? "border-amber-400/80 ring-1 ring-amber-400/40" : "border-border"
+        }`}
+      >
+        <p className="text-xs text-muted-foreground print:text-black">Encontradas / Total</p>
+        <p className="mt-1 text-2xl font-bold text-foreground print:text-xl print:text-black tabular-nums">
+          {encontradas}/{totalEtiquetas}
+        </p>
+        {naoEncontrado > 0 && (
+          <p className="mt-1 text-[11px] text-amber-800 dark:text-amber-200 print:text-black">
+            Faltam {naoEncontrado} etiqueta{naoEncontrado !== 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
       <div className="rounded-lg border border-border bg-card p-4 print:rounded-none print:border-0 print:p-0">
         <p className="text-xs text-muted-foreground print:text-black">Peso total (kg)</p>
         <p className="mt-1 text-2xl font-bold text-foreground print:text-xl print:text-black">
@@ -86,6 +111,15 @@ export default function RelatorioInventarioBitola() {
 
   const itens = data?.itens ?? [];
   const quantidadePrevistaTotal = data?.quantidadePrevistaTotal ?? 0;
+
+  const itensOrdenados = useMemo(() => {
+    return [...itens].sort((a, b) => {
+      const pa = prioridadeOrdenacaoRelatorio(a.status);
+      const pb = prioridadeOrdenacaoRelatorio(b.status);
+      if (pa !== pb) return pa - pb;
+      return (a.codigoBarras || "").localeCompare(b.codigoBarras || "", "pt-BR");
+    });
+  }, [itens]);
 
   const podeImprimir = !isFetching && !isError && itens.length > 0;
   const dataHoje = new Date().toLocaleDateString("pt-BR");
@@ -213,7 +247,7 @@ export default function RelatorioInventarioBitola() {
                       </td>
                     </tr>
                   ) : (
-                    itens.map((item, idx) => (
+                    itensOrdenados.map((item, idx) => (
                       <tr
                         key={`${item.codigoBarras}-${idx}`}
                         className={`transition-colors hover:bg-muted/30 print:hover:bg-transparent ${
