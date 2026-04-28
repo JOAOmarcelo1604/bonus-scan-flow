@@ -236,6 +236,12 @@ export interface RelatorioInventarioBitolaItem {
   status: 'NEW' | 'OK' | 'SAIU' | 'NAO ENCONTRADO';
 }
 
+/** Resposta de GET /api/relatorio/inventario-bitola */
+export interface RelatorioInventarioBitolaResultado {
+  itens: RelatorioInventarioBitolaItem[];
+  quantidadePrevistaTotal: number;
+}
+
 export interface ReimpressaoLog {
   id: number;
   codigoBarras: string;

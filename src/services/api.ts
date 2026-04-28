@@ -24,6 +24,7 @@ import type {
   VolumeGerado,
   PedidoSeparadoVolume,
   RelatorioInventarioBitolaItem,
+  RelatorioInventarioBitolaResultado,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -330,11 +331,14 @@ export async function listarBitolasSeparacao(): Promise<string[]> {
   return res.data;
 }
 
-export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaItem[]> {
-  const res = await api.get<RelatorioInventarioBitolaItem[]>("/api/relatorio/inventario-bitola", {
+export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaResultado> {
+  const res = await api.get<unknown>("/api/relatorio/inventario-bitola", {
     params: { bitola },
   });
-  return res.data;
+  const d = res.data as Record<string, unknown>;
+  const itens = Array.isArray(d.itens) ? (d.itens as RelatorioInventarioBitolaItem[]) : [];
+  const quantidadePrevistaTotal = Number(d.quantidadePrevistaTotal) || 0;
+  return { itens, quantidadePrevistaTotal };
 }
 
 export async function reimprimirEtiqueta(

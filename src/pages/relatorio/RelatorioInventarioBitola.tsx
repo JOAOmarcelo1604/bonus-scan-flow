@@ -33,7 +33,7 @@ function ViasBadge({ vias }: { vias: number }) {
 }
 
 
-function Resumo({ itens, bitola }: { itens: RelatorioInventarioBitolaItem[]; bitola: string }) {
+function Resumo({ itens, quantidadePrevistaTotal }: { itens: RelatorioInventarioBitolaItem[]; quantidadePrevistaTotal: number }) {
   const contagem = itens.reduce<Record<string, number>>((acc, item) => {
     acc[item.status] = (acc[item.status] ?? 0) + 1;
     return acc;
@@ -41,7 +41,7 @@ function Resumo({ itens, bitola }: { itens: RelatorioInventarioBitolaItem[]; bit
   const pesoTotal = itens.reduce((sum, i) => sum + (i.peso ?? 0), 0);
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 print:flex print:gap-6 print:border print:border-black print:p-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 print:flex print:flex-wrap print:gap-6 print:border print:border-black print:p-3">
       {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
         <div key={key} className="rounded-lg border border-border bg-card p-4 print:rounded-none print:border-0 print:p-0">
           <p className="text-xs text-muted-foreground print:text-black">{cfg.label}</p>
@@ -52,6 +52,12 @@ function Resumo({ itens, bitola }: { itens: RelatorioInventarioBitolaItem[]; bit
         <p className="text-xs text-muted-foreground print:text-black">Peso total (kg)</p>
         <p className="mt-1 text-2xl font-bold text-foreground print:text-xl print:text-black">
           {pesoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-4 print:rounded-none print:border-0 print:p-0">
+        <p className="text-xs text-muted-foreground print:text-black">Qtd. prevista (barras)</p>
+        <p className="mt-1 text-2xl font-bold text-foreground print:text-xl print:text-black">
+          {quantidadePrevistaTotal.toLocaleString("pt-BR")}
         </p>
       </div>
     </div>
@@ -70,7 +76,7 @@ export default function RelatorioInventarioBitola() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data = [], isFetching, isError } = useQuery({
+  const { data, isFetching, isError } = useQuery({
     queryKey: ["relatorio-inventario-bitola", bitolaQuery],
     queryFn: () => buscarRelatorioInventarioBitola(bitolaQuery!),
     enabled: bitolaQuery !== null,
@@ -78,7 +84,10 @@ export default function RelatorioInventarioBitola() {
     onError: () => toast.error("Erro ao carregar relatório."),
   });
 
-  const podeImprimir = !isFetching && !isError && data.length > 0;
+  const itens = data?.itens ?? [];
+  const quantidadePrevistaTotal = data?.quantidadePrevistaTotal ?? 0;
+
+  const podeImprimir = !isFetching && !isError && itens.length > 0;
   const dataHoje = new Date().toLocaleDateString("pt-BR");
 
   function handleReimpressaoSucesso() {
@@ -125,7 +134,8 @@ export default function RelatorioInventarioBitola() {
         <h1 className="text-xl font-bold text-black">Relatório de Inventário por Bitola</h1>
         {bitolaQuery && (
           <p className="text-sm text-black">
-            Bitola: <strong>{bitolaQuery} mm</strong> &nbsp;·&nbsp; Data: {dataHoje} &nbsp;·&nbsp; Total: {data.length} etiquetas
+            Bitola: <strong>{bitolaQuery} mm</strong> &nbsp;·&nbsp; Data: {dataHoje} &nbsp;·&nbsp; Total: {itens.length}{" "}
+            etiquetas &nbsp;·&nbsp; Qtd. prevista: {quantidadePrevistaTotal.toLocaleString("pt-BR")}
           </p>
         )}
         <hr className="mt-2 border-black" />
@@ -178,7 +188,7 @@ export default function RelatorioInventarioBitola() {
         {/* Resultado */}
         {bitolaQuery && !isFetching && !isError && (
           <>
-            <Resumo itens={data} bitola={bitolaQuery} />
+            <Resumo itens={itens} quantidadePrevistaTotal={quantidadePrevistaTotal} />
 
             {/* Tabela */}
             <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm print:overflow-visible print:rounded-none print:border-black print:shadow-none">
@@ -196,14 +206,14 @@ export default function RelatorioInventarioBitola() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border print:divide-gray-300">
-                  {data.length === 0 ? (
+                  {itens.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                         Nenhum registro encontrado para esta bitola.
                       </td>
                     </tr>
                   ) : (
-                    data.map((item, idx) => (
+                    itens.map((item, idx) => (
                       <tr
                         key={`${item.codigoBarras}-${idx}`}
                         className={`transition-colors hover:bg-muted/30 print:hover:bg-transparent ${
@@ -250,7 +260,7 @@ export default function RelatorioInventarioBitola() {
             </div>
 
             <p className="text-right text-xs text-muted-foreground print:hidden">
-              {data.length} etiquetas · {bitolaQuery} mm
+              {itens.length} etiquetas · {bitolaQuery} mm · Qtd. prevista: {quantidadePrevistaTotal.toLocaleString("pt-BR")}
             </p>
           </>
         )}
