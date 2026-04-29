@@ -46,6 +46,8 @@ export interface AuditoriaModel {
   observacao: string;
   /** Soma de `etiqueta_lida.pesoTotal` para o bônus. Vem do GET /api/auditoria/pendentes. */
   pesoBipado?: number;
+  /** Data/hora em que o bônus foi aprovado ou rejeitado. */
+  dataAprovacao?: string;
 }
 
 /* ── Dobra de Materiais ── */
@@ -96,6 +98,12 @@ export interface InventarioModel {
   status: string; // ABERTO, EM_APROVACAO, APROVADO, REJEITADO
   usuarioAbertura: string;
   pesoTotal: number;
+  /** Preenchido quando status = APROVADO */
+  usuarioAprovacao?: string;
+  dataHoraAprovacao?: string;
+  /** Nome em PCEMPR (quando o código é matrícula) */
+  nomeAbertura?: string;
+  nomeAprovacao?: string;
 }
 
 /** Novo modelo de item de inventário (V2) */
