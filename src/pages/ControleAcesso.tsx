@@ -18,6 +18,7 @@ export const MODULOS_SISTEMA = [
   "Solicitações de Etiquetas",
   "Rel. Inventário por Bitola",
   "Rel. Auditoria de Estoque",
+  "Rel. Estoque Físico por Data",
   "Reimpressão de Etiquetas",
 ];
 

@@ -23,6 +23,7 @@ import ControleAcesso from "./pages/ControleAcesso.tsx";
 import SeparacaoPage from "./pages/SeparacaoPage.tsx";
 import RelatorioInventarioBitola from "./pages/relatorio/RelatorioInventarioBitola.tsx";
 import RelatorioAuditoriaEstoque from "./pages/relatorio/RelatorioAuditoriaEstoque.tsx";
+import RelatorioEstoqueFisico from "./pages/relatorio/RelatorioEstoqueFisico.tsx";
 import ReimpressaoEtiqueta from "./pages/ReimpressaoEtiqueta.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/separacao" element={<SeparacaoPage />} />
               <Route path="/relatorio/inventario-bitola" element={<RelatorioInventarioBitola />} />
               <Route path="/relatorio/auditoria-estoque" element={<RelatorioAuditoriaEstoque />} />
+              <Route path="/relatorio/estoque-fisico" element={<RelatorioEstoqueFisico />} />
               <Route path="/reimpressao-etiqueta" element={<ReimpressaoEtiqueta />} />
             </Route>
 
