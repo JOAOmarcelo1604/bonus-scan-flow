@@ -27,6 +27,7 @@ import type {
   RelatorioInventarioBitolaResponse,
   RelatorioAuditoriaEstoqueLinha,
   InventarioExpedicaoBiResponse,
+  InventarioBiSaidaEtiquetasResponse,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -232,6 +233,16 @@ export async function listarTodosInventarios(): Promise<InventarioModel[]> {
 
 export async function buscarInventarioBiExpedicao(): Promise<InventarioExpedicaoBiResponse> {
   const res = await api.get<InventarioExpedicaoBiResponse>(`${API_INVENTARIO}/bi/expedicao`);
+  return res.data;
+}
+
+export async function buscarInventarioBiSaidaDetalhes(
+  inventarioAnteriorId: number,
+  inventarioAtualId: number,
+): Promise<InventarioBiSaidaEtiquetasResponse> {
+  const res = await api.get<InventarioBiSaidaEtiquetasResponse>(`${API_INVENTARIO}/bi/expedicao/saida-detalhes`, {
+    params: { anterior: inventarioAnteriorId, atual: inventarioAtualId },
+  });
   return res.data;
 }
 

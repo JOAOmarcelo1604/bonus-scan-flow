@@ -289,6 +289,35 @@ export interface InventarioExpedicaoBiResponse {
   periodos: ExpedicaoPeriodoItem[];
   agregadosSemanais: ExpedicaoAgregadoSemanal[];
   agregadosMensais: ExpedicaoAgregadoMensal[];
+  /** Chip Pedido (SEP‑) — último intervalo. */
+  pesoUltimoDetalheSeparadoKg?: number | null;
+  /** Chip Sintético (MAN‑) — último intervalo. */
+  pesoUltimoDetalheSoltoSinteticoKg?: number | null;
+  /** Soma dos dois acima. */
+  pesoUltimoDetalheSeparadoMaisSoltoKg?: number | null;
+}
+
+/** GET /api/inventario/bi/expedicao/saida-detalhes */
+export interface SaidaEtiquetaLinha {
+  etiqueta: string;
+  codProd: string | null;
+  pesoKg: number;
+  /** true quando PESO nulo e calculado como qtde × PCPRODUT.PESOLIQ (SOLTO/SEPARADO) */
+  pesoEstimadoPorPcprodut?: boolean | null;
+  quantidade?: number | null;
+  /** RETO, DOBRADO, SOLTO, SEPARADO … */
+  statusEtiqueta: string | null;
+  numPed: number | null;
+  codigoDestino: string;
+  textoDestino: string;
+}
+
+export interface InventarioBiSaidaEtiquetasResponse {
+  inventarioAnteriorId: number;
+  inventarioAtualId: number;
+  textoObservacao?: string | null;
+  somaPesoLinhasKg: number;
+  apenasNaContagemAnterior: SaidaEtiquetaLinha[];
 }
 
 export interface ReimpressaoLog {

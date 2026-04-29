@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { CartesianGrid, Bar, BarChart, XAxis, YAxis } from "recharts";
 import { getISOWeek, getISOWeekYear } from "date-fns";
-import { buscarInventarioBiExpedicao } from "@/services/api";
+import { buscarInventarioBiExpedicao, buscarInventarioBiSaidaDetalhes } from "@/services/api";
 import type { BitolaDeltaItem, ExpedicaoPeriodoItem } from "@/types/api";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const MESES_PT = [
@@ -78,6 +85,26 @@ function corDeltaKg(varKg: number) {
   return "text-muted-foreground";
 }
 
+function rotuloDestinoBreve(codigo: string): string {
+  const m: Record<string, string> = {
+    SEP_PEDIDO: "Pedido (SEP-)",
+    ABERTURA: "Abertura",
+    SOLTO_MANUAL: "Solto",
+    REGISTRO_SINTETICO: "Sintético (MAN-)",
+    SEM_VINCULO_EXPLICITO: "Sem vínculo claro",
+  };
+  return m[codigo] ?? codigo;
+}
+
+function mensagemErroConsulta(e: unknown): string {
+  if (typeof e === "object" && e !== null && "response" in e) {
+    const raw = (e as { response?: { data?: unknown } }).response?.data;
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+  }
+  if (e instanceof Error && e.message) return e.message;
+  return "Não foi possível carregar o detalhe.";
+}
+
 const chartConfig = {
   expedicao: {
     label: "Δ kg (atual − ant.)",
@@ -88,11 +115,45 @@ const chartConfig = {
 export default function ExpedicaoInventarioBi() {
   const navigate = useNavigate();
   const [abaDetalhe, setAbaDetalhe] = useState<string>("graficos");
+  const [intervaloSaidaEtiquetas, setIntervaloSaidaEtiquetas] = useState<{
+    ant: number;
+    cur: number;
+  } | null>(null);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["inventario-bi-expedicao"],
     queryFn: buscarInventarioBiExpedicao,
   });
+
+  const querySaidaEtiquetas = useQuery({
+    queryKey: ["inventario-bi-saida-etiquetas", intervaloSaidaEtiquetas?.ant, intervaloSaidaEtiquetas?.cur],
+    queryFn: () =>
+      buscarInventarioBiSaidaDetalhes(intervaloSaidaEtiquetas!.ant, intervaloSaidaEtiquetas!.cur),
+    enabled: intervaloSaidaEtiquetas !== null,
+  });
+
+  const resumoDestinoKg = useMemo(() => {
+    const lines = querySaidaEtiquetas.data?.apenasNaContagemAnterior ?? [];
+    const m = new Map<string, { qt: number; kg: number }>();
+    for (const l of lines) {
+      const prev = m.get(l.codigoDestino) ?? { qt: 0, kg: 0 };
+      prev.qt += 1;
+      prev.kg += Number(l.pesoKg ?? 0);
+      m.set(l.codigoDestino, prev);
+    }
+    return [...m.entries()].sort((a, b) => Math.abs(b[1].kg) - Math.abs(a[1].kg));
+  }, [querySaidaEtiquetas.data]);
+
+  /** Δ oficial do BI (#ant → #cur) quando o modal está aberto. */
+  const deltaOficialIntervaloModal = useMemo(() => {
+    if (!intervaloSaidaEtiquetas || !data?.periodos) return null;
+    const row = data.periodos.find(
+      (p) =>
+        p.inventarioAnteriorId === intervaloSaidaEtiquetas.ant &&
+        p.inventarioAtualId === intervaloSaidaEtiquetas.cur,
+    );
+    return row !== undefined ? deltaCabecalho(row) : null;
+  }, [intervaloSaidaEtiquetas, data?.periodos]);
 
   const periodosRecentes = useMemo(() => {
     const p = data?.periodos ?? [];
@@ -181,13 +242,13 @@ export default function ExpedicaoInventarioBi() {
         )}
 
         {data?.mensagemObservacao && (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          <div className="rounded-lg border border-blue-700/30 bg-blue-50/95 px-4 py-3 text-sm text-blue-950 dark:border-blue-600/35 dark:bg-blue-950/60 dark:text-blue-50">
             {data.mensagemObservacao}
           </div>
         )}
 
         {!isLoading && !isError && ultimoPeriodo && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Último intervalo (data ref. mais recente)</CardDescription>
@@ -240,6 +301,35 @@ export default function ExpedicaoInventarioBi() {
                     </li>
                   ))}
                 </ul>
+              </CardContent>
+            </Card>
+            <Card className="border-blue-700/35 bg-blue-50/95 dark:bg-card dark:border-blue-700/35">
+              <CardHeader className="pb-2">
+                <CardDescription>Separado e solto (último intervalo)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-foreground">
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="rounded-md border border-border/80 bg-background/80 px-3 py-2">
+                    <dt className="text-xs font-medium text-muted-foreground">Separado (SEP‑)</dt>
+                    <dd className="mt-1 text-lg font-semibold tabular-nums">
+                      {data?.pesoUltimoDetalheSeparadoKg != null ? `${fmtKg(data.pesoUltimoDetalheSeparadoKg)} kg` : "—"}
+                    </dd>
+                  </div>
+                  <div className="rounded-md border border-border/80 bg-background/80 px-3 py-2">
+                    <dt className="text-xs font-medium text-muted-foreground">Solto (MAN‑ / sintético)</dt>
+                    <dd className="mt-1 text-lg font-semibold tabular-nums">
+                      {data?.pesoUltimoDetalheSoltoSinteticoKg != null ? `${fmtKg(data.pesoUltimoDetalheSoltoSinteticoKg)} kg` : "—"}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="rounded-md border border-blue-800/30 bg-background px-3 py-2">
+                  <p className="text-xs font-medium text-muted-foreground">Total (SEP + MAN‑)</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-blue-950 dark:text-foreground">
+                    {data?.pesoUltimoDetalheSeparadoMaisSoltoKg != null
+                      ? `${fmtKg(data.pesoUltimoDetalheSeparadoMaisSoltoKg)} kg`
+                      : "—"}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -344,6 +434,7 @@ export default function ExpedicaoInventarioBi() {
                       <TableHead className="text-right">Peso ant. (kg)</TableHead>
                       <TableHead className="text-right">Peso atual (kg)</TableHead>
                       <TableHead className="text-right">Δ cabeçalho (atual − ant.)</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">Etiquetas</TableHead>
                       <TableHead>Principais bitolas (Δ)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -363,6 +454,22 @@ export default function ExpedicaoInventarioBi() {
                           )}
                         >
                           {fmtKgDeltaComSinal(deltaCabecalho(row))}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() =>
+                              setIntervaloSaidaEtiquetas({
+                                ant: row.inventarioAnteriorId,
+                                cur: row.inventarioAtualId,
+                              })
+                            }
+                          >
+                            Ver onde foram
+                          </Button>
                         </TableCell>
                         <TableCell className="max-w-[360px] text-xs leading-relaxed">
                           {maiorAbsDeltaBitola((row.deltasPorBitola ?? []).filter((d) => Math.abs(deltaBitola(d)) > 0.0005))
@@ -392,6 +499,146 @@ export default function ExpedicaoInventarioBi() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Dialog
+        open={intervaloSaidaEtiquetas !== null}
+        onOpenChange={(open) => {
+          if (!open) setIntervaloSaidaEtiquetas(null);
+        }}
+      >
+        <DialogContent className="flex h-[min(95vh,min(1200px,95dvh))] w-full max-w-[min(96vw,92rem)] flex-col gap-4 overflow-hidden p-6 sm:p-8">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>
+              Etiquetas só na contagem anterior
+              {intervaloSaidaEtiquetas ? (
+                <span className="text-muted-foreground font-normal">
+                  {" "}
+                  #{intervaloSaidaEtiquetas.ant} → #{intervaloSaidaEtiquetas.cur}
+                </span>
+              ) : null}
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              Códigos bipados na primeira sessão e ausentes na segunda (mesmo código). Não explica todo o Δ do cabeçalho quando
+              há mudança de peso mantendo etiqueta ou itens novos só na segunda contagem — veja observação ao final quando
+              houver.
+            </DialogDescription>
+          </DialogHeader>
+
+          {intervaloSaidaEtiquetas && querySaidaEtiquetas.isPending && (
+            <p className="text-sm text-muted-foreground">Carregando detalhes…</p>
+          )}
+          {querySaidaEtiquetas.isError && (
+            <p className="text-sm text-destructive">{mensagemErroConsulta(querySaidaEtiquetas.error)}</p>
+          )}
+
+          {querySaidaEtiquetas.data && (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">
+              <div className="rounded-md border border-blue-700/30 bg-blue-50/95 px-3 py-3 text-[13px] leading-relaxed text-blue-950 dark:border-blue-500/40 dark:bg-blue-950/90 dark:text-white">
+                <p className="font-semibold text-blue-950 dark:text-white">Δ do BI × soma deste modal</p>
+                {deltaOficialIntervaloModal != null ? (
+                  <p className="mt-1 text-blue-900 dark:text-neutral-50">
+                    O número <strong>oficial na página</strong> é o Δ do cabeçalho entre as sessões:{" "}
+                    <strong className={cn("tabular-nums", corDeltaKg(deltaOficialIntervaloModal))}>
+                      {fmtKgDeltaTextoKg(deltaOficialIntervaloModal)}
+                    </strong>{" "}
+                    (peso total aprovado da contagem atual − peso total da anterior — todos os itens).
+                  </p>
+                ) : (
+                  <p className="mt-1 text-blue-900 dark:text-neutral-50">
+                    O Δ do topo compara os <strong>pesos totais aprovados</strong> das duas sessões inteiras.
+                  </p>
+                )}
+                <p className="mt-2 text-blue-900 dark:text-neutral-50">
+                  O <strong className="tabular-nums">Σ das linhas abaixo</strong> só soma pesos em que{" "}
+                  <strong>a mesma etiqueta existiu na 1ª contagem e não aparece na 2ª</strong>. Esse montante pode ser
+                  <strong> maior ou menor </strong>
+                  que o Δ do BI: há entradas só na segunda contagem, etiquetas repetidas com peso diferente,
+                  registros só na segunda, etc.; os chips por destino apenas classificam essas mesmas linhas que “sumiram”
+                  da 2ª leitura.
+                </p>
+              </div>
+
+              <div className="grid shrink-0 gap-2 text-sm">
+                <p className="tabular-nums text-muted-foreground">
+                  Σ pesos destas linhas (saídas por etiqueta ausente na 2ª):{" "}
+                  <span className="font-medium text-foreground">
+                    {fmtKg(querySaidaEtiquetas.data.somaPesoLinhasKg)} kg
+                  </span>
+                </p>
+                {resumoDestinoKg.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {resumoDestinoKg.map(([codigo, v]) => (
+                      <span
+                        key={codigo}
+                        className="rounded-md border bg-muted/40 px-2 py-1 text-xs tabular-nums"
+                      >
+                        {rotuloDestinoBreve(codigo)}: {fmtKg(v.kg)} kg ({v.qt} ite{v.qt === 1 ? "m" : "ns"})
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div
+                className="-mx-1 min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border border-border/70 pr-1 [scrollbar-gutter:stable]"
+                role="region"
+                aria-label="Lista de etiquetas ausentes na segunda contagem"
+              >
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                    <TableRow>
+                      <TableHead>Etiqueta</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Qtd.</TableHead>
+                      <TableHead className="text-right">Peso (kg)</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Destino / vínculo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {querySaidaEtiquetas.data.apenasNaContagemAnterior.map((ln, idx) => (
+                      <TableRow key={`${ln.etiqueta}-${idx}`}>
+                        <TableCell className="max-w-[200px] break-all font-mono text-xs">{ln.etiqueta}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {ln.quantidade != null ? ln.quantidade : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="tabular-nums">{fmtKg(Number(ln.pesoKg ?? 0))}</span>
+                          {ln.pesoEstimadoPorPcprodut ? (
+                            <span className="mt-1 block max-w-[14rem] text-left text-[10px] leading-tight text-blue-900 dark:text-blue-100">
+                              Estimativa: qtde × PCPRODUT.PESOLIQ
+                            </span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ln.statusEtiqueta ?? "—"}</TableCell>
+                        <TableCell className="min-w-[200px] max-w-[320px] text-xs leading-relaxed">
+                          <span className="text-muted-foreground">{rotuloDestinoBreve(ln.codigoDestino)}:</span>{" "}
+                          {ln.textoDestino}
+                          {ln.numPed != null ? (
+                            <span className="block text-muted-foreground">Pedido: {ln.numPed}</span>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {querySaidaEtiquetas.data.apenasNaContagemAnterior.length === 0 && (
+                <p className="shrink-0 text-sm text-muted-foreground">
+                  Nenhuma etiqueta cadastrada só na primeira contagem (comparando por código igual). O Δ pode vir de
+                  variação de peso ou de itens só na segunda contagem.
+                </p>
+              )}
+
+              {querySaidaEtiquetas.data.textoObservacao && (
+                <p className="shrink-0 rounded-md border border-blue-700/30 bg-blue-50/95 px-3 py-3 text-xs leading-relaxed text-blue-950 dark:border-blue-500/40 dark:bg-blue-950/90 dark:text-white">
+                  {querySaidaEtiquetas.data.textoObservacao}
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
