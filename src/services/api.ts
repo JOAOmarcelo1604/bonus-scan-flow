@@ -25,6 +25,7 @@ import type {
   PedidoSeparadoVolume,
   RelatorioInventarioBitolaResponse,
   RelatorioAuditoriaEstoqueLinha,
+  InventarioExpedicaoBiResponse,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -226,6 +227,11 @@ export async function enviarInventarioAprovacao(id: number): Promise<void> {
 export async function listarTodosInventarios(): Promise<InventarioModel[]> {
   const res = await api.get<unknown>(`${API_INVENTARIO}/todos`);
   return Array.isArray(res.data) ? res.data.map(normalizarHeaderInventario) : [];
+}
+
+export async function buscarInventarioBiExpedicao(): Promise<InventarioExpedicaoBiResponse> {
+  const res = await api.get<InventarioExpedicaoBiResponse>(`${API_INVENTARIO}/bi/expedicao`);
+  return res.data;
 }
 
 export async function listarInventariosPendentes(): Promise<InventarioModel[]> {

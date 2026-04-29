@@ -251,6 +251,46 @@ export interface RelatorioAuditoriaEstoqueLinha {
   resultado: number;
 }
 
+/** GET /api/inventario/bi/expedicao */
+export interface BitolaDeltaItem {
+  bitola: string;
+  pesoKgAnterior: number;
+  pesoKgAtual: number;
+  deltaKg: number;
+}
+
+export interface ExpedicaoPeriodoItem {
+  inventarioAnteriorId: number;
+  inventarioAtualId: number;
+  dataReferenciaAnterior: string;
+  dataReferenciaAtual: string;
+  pesoTotalAnteriorKg: number;
+  pesoTotalAtualKg: number;
+  pesoExpedicaoKgHeader: number;
+  deltasPorBitola: BitolaDeltaItem[];
+}
+
+export interface ExpedicaoAgregadoSemanal {
+  anoSemanaIso: string;
+  ano: number;
+  semanaIso: number;
+  pesoExpedicaoTotalKg: number;
+}
+
+export interface ExpedicaoAgregadoMensal {
+  anoMes: string;
+  ano: number;
+  mes: number;
+  pesoExpedicaoTotalKg: number;
+}
+
+export interface InventarioExpedicaoBiResponse {
+  mensagemObservacao?: string | null;
+  periodos: ExpedicaoPeriodoItem[];
+  agregadosSemanais: ExpedicaoAgregadoSemanal[];
+  agregadosMensais: ExpedicaoAgregadoMensal[];
+}
+
 export interface ReimpressaoLog {
   id: number;
   codigoBarras: string;
