@@ -101,6 +101,17 @@ export default function RelatorioInventarioBitola() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const bitolasOrdenadas = useMemo(() => {
+    return [...bitolas].sort((a, b) => {
+      const na = Number(String(a).trim().replace(",", "."));
+      const nb = Number(String(b).trim().replace(",", "."));
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb || String(a).localeCompare(String(b), "pt-BR");
+      if (Number.isFinite(na)) return -1;
+      if (Number.isFinite(nb)) return 1;
+      return String(a).localeCompare(String(b), "pt-BR");
+    });
+  }, [bitolas]);
+
   const { data, isFetching, isError } = useQuery({
     queryKey: ["relatorio-inventario-bitola", bitolaQuery],
     queryFn: () => buscarRelatorioInventarioBitola(bitolaQuery!),
@@ -184,7 +195,7 @@ export default function RelatorioInventarioBitola() {
             <span className="text-xs text-muted-foreground">Carregando…</span>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {bitolas.map(b => (
+              {bitolasOrdenadas.map(b => (
                 <button
                   key={b}
                   onClick={() => setBitolaQuery(b)}
