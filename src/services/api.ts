@@ -23,7 +23,6 @@ import type {
   SeparacaoGerarRequest,
   VolumeGerado,
   PedidoSeparadoVolume,
-  RelatorioInventarioBitolaItem,
   RelatorioInventarioBitolaResponse,
   RelatorioAuditoriaEstoqueLinha,
 } from "@/types/api";
@@ -332,11 +331,15 @@ export async function listarBitolasSeparacao(): Promise<string[]> {
   return res.data;
 }
 
-export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaItem[]> {
+export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaResponse> {
   const res = await api.get<RelatorioInventarioBitolaResponse>("/api/relatorio/inventario-bitola", {
     params: { bitola },
   });
-  return res.data.itens ?? [];
+  const d = res.data;
+  return {
+    itens: Array.isArray(d?.itens) ? d.itens : [],
+    quantidadePrevistaTotal: typeof d?.quantidadePrevistaTotal === "number" ? d.quantidadePrevistaTotal : 0,
+  };
 }
 
 export async function buscarRelatorioAuditoriaEstoque(
