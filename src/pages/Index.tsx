@@ -157,6 +157,22 @@ const cards: NavCard[] = [
     ),
   },
   {
+    title: "Rel. Auditoria de Estoque",
+    description: "Comparativo diário Físico × Winthor por bitola",
+    path: "/relatorio/auditoria-estoque",
+    color: "bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3v18h18"/>
+        <path d="M7 14l4-4 3 3 5-6"/>
+        <circle cx="7" cy="14" r="1"/>
+        <circle cx="11" cy="10" r="1"/>
+        <circle cx="14" cy="13" r="1"/>
+        <circle cx="19" cy="7" r="1"/>
+      </svg>
+    ),
+  },
+  {
     title: "Reimpressão de Etiquetas",
     description: "Reimprimir etiquetas por bônus ou código de barras",
     path: "/reimpressao-etiqueta",

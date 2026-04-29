@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { buscarRelatorioInventarioBitola, listarBitolasSeparacao } from "@/services/api";
 import type { RelatorioInventarioBitolaItem } from "@/types/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,13 +70,16 @@ export default function RelatorioInventarioBitola() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data = [], isFetching, isError } = useQuery({
+  const { data = [], isFetching, isError, error } = useQuery({
     queryKey: ["relatorio-inventario-bitola", bitolaQuery],
     queryFn: () => buscarRelatorioInventarioBitola(bitolaQuery!),
     enabled: bitolaQuery !== null,
     retry: false,
-    onError: () => toast.error("Erro ao carregar relatório."),
   });
+
+  useEffect(() => {
+    if (error) toast.error("Erro ao carregar relatório.");
+  }, [error]);
 
   const podeImprimir = !isFetching && !isError && data.length > 0;
   const dataHoje = new Date().toLocaleDateString("pt-BR");

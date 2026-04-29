@@ -228,6 +228,21 @@ export interface RelatorioInventarioBitolaItem {
   status: 'NEW' | 'OK' | 'SAIU' | 'NAO ENCONTRADO';
 }
 
+export interface RelatorioInventarioBitolaResponse {
+  itens: RelatorioInventarioBitolaItem[];
+  quantidadePrevistaTotal: number;
+}
+
+export interface RelatorioAuditoriaEstoqueLinha {
+  mes: number;
+  data: string;
+  bitola: string;
+  totalFisico: number;
+  totalSistema: number;
+  saidaFilial5: number;
+  resultado: number;
+}
+
 export interface ReimpressaoLog {
   id: number;
   codigoBarras: string;
