@@ -4,36 +4,15 @@ import { toast } from "sonner";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ADMIN_CODES } from "./Index";
-
-export const MODULOS_SISTEMA = [
-  "Recebimento Bônus",
-  "Auditorias",
-  "Aprovação Bônus",
-  "Dobra de Materiais",
-  "Abertura de Materiais",
-  "Separação de Volumes",
-  "Inventário — consulta",
-  "Registro de inventário",
-  "Aprovação de inventário",
-  "Solicitações de Etiquetas",
-  "Rel. Inventário por Bitola",
-  "Rel. Auditoria de Estoque",
-  "BI Expedição (inventário)",
-  "Reimpressão de Etiquetas",
-];
+import { MODULOS_SISTEMA } from "@/config/modulosSistema";
 
 export default function ControleAcesso() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Bloqueia acesso para não-admins
-  if (!user || !ADMIN_CODES.includes(user.userCode)) {
-    return <Navigate to="/" replace />;
-  }
-
   const [usuarios, setUsuarios] = useState<UsuarioWinthor[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  
+
   const [selectedUser, setSelectedUser] = useState<UsuarioWinthor | null>(null);
   const [modulosAtivos, setModulosAtivos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -57,21 +36,22 @@ export default function ControleAcesso() {
     try {
       const data = await listarUsuariosWinthor();
       setUsuarios(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      const serverMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      const axiosErr = error as { response?: { data?: unknown }; message?: string };
+      const serverMsg = axiosErr.response?.data ? JSON.stringify(axiosErr.response.data) : axiosErr.message;
       toast.error("Falha banco: " + serverMsg, { duration: 10000 });
     } finally {
       setLoadingUsers(false);
     }
   }
 
-  async function handleSelectUser(user: UsuarioWinthor) {
-    setSelectedUser(user);
+  async function handleSelectUser(u: UsuarioWinthor) {
+    setSelectedUser(u);
     try {
-      const mods = await listarModulosUsuario(user.matricula);
-      setModulosAtivos(mods || []);
-    } catch (err) {
+      const mods = await listarModulosUsuario(u.matricula);
+      setModulosAtivos(mods ?? []);
+    } catch {
       toast.error("Erro ao carregar os módulos deste usuário");
       setModulosAtivos([]);
     }
@@ -91,11 +71,15 @@ export default function ControleAcesso() {
     try {
       await salvarModulosUsuario(selectedUser.matricula, modulosAtivos);
       toast.success("Permissões atualizadas com sucesso!");
-    } catch (error) {
+    } catch {
       toast.error("Falha ao salvar as permissões");
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!user || !ADMIN_CODES.includes(user.userCode)) {
+    return <Navigate to="/" replace />;
   }
 
   return (

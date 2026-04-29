@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizarListaModulosPermissao } from "@/config/modulosSistema";
 import { normalizarListaAuditorias } from "@/lib/normalizarAuditoria";
 import { etiquetaPesoFromCache, rememberEtiquetaPeso } from "@/lib/etiquetaPesoCache";
 import { normalizarEtiquetaLidaApi } from "@/lib/normalizarEtiquetaLida";
@@ -323,7 +324,7 @@ export async function listarUsuariosWinthor(): Promise<UsuarioWinthor[]> {
 
 export async function listarModulosUsuario(matricula: number): Promise<string[]> {
   const res = await api.get<string[]>(`/api/permissoes/${matricula}`);
-  return res.data;
+  return normalizarListaModulosPermissao(res.data ?? []);
 }
 
 export async function salvarModulosUsuario(matricula: number, modulos: string[]): Promise<void> {
