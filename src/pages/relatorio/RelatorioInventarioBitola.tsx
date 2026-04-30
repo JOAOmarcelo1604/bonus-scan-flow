@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { buscarRelatorioInventarioBitola, listarBitolasSeparacao } from "@/services/api";
 import type { RelatorioInventarioBitolaItem } from "@/types/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,7 +101,20 @@ export default function RelatorioInventarioBitola() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data = [], isFetching, isError, error } = useQuery({
+
+  const bitolasOrdenadas = useMemo(() => {
+    return [...bitolas].sort((a, b) => {
+      const na = Number(String(a).trim().replace(",", "."));
+      const nb = Number(String(b).trim().replace(",", "."));
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb || String(a).localeCompare(String(b), "pt-BR");
+      if (Number.isFinite(na)) return -1;
+      if (Number.isFinite(nb)) return 1;
+      return String(a).localeCompare(String(b), "pt-BR");
+    });
+  }, [bitolas]);
+
+
+  const { data, isFetching, isError, error } = useQuery({
     queryKey: ["relatorio-inventario-bitola", bitolaQuery],
     queryFn: () => buscarRelatorioInventarioBitola(bitolaQuery!),
     enabled: bitolaQuery !== null,
@@ -112,7 +125,19 @@ export default function RelatorioInventarioBitola() {
     if (error) toast.error("Erro ao carregar relatório.");
   }, [error]);
 
-  const podeImprimir = !isFetching && !isError && data.length > 0;
+  const itens = data?.itens ?? [];
+  const quantidadePrevistaTotal = data?.quantidadePrevistaTotal ?? 0;
+
+  const itensOrdenados = useMemo(() => {
+    return [...itens].sort((a, b) => {
+      const pa = prioridadeOrdenacaoRelatorio(a.status);
+      const pb = prioridadeOrdenacaoRelatorio(b.status);
+      if (pa !== pb) return pa - pb;
+      return (a.codigoBarras || "").localeCompare(b.codigoBarras || "", "pt-BR");
+    });
+  }, [itens]);
+
+  const podeImprimir = !isFetching && !isError && itens.length > 0;
   const dataHoje = new Date().toLocaleDateString("pt-BR");
 
   function handleReimpressaoSucesso() {
@@ -175,7 +200,7 @@ export default function RelatorioInventarioBitola() {
             <span className="text-xs text-muted-foreground">Carregando…</span>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {bitolas.map(b => (
+              {bitolasOrdenadas.map(b => (
                 <button
                   key={b}
                   onClick={() => setBitolaQuery(b)}

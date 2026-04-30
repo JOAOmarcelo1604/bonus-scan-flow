@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizarListaModulosPermissao } from "@/config/modulosSistema";
 import { normalizarListaAuditorias } from "@/lib/normalizarAuditoria";
 import { etiquetaPesoFromCache, rememberEtiquetaPeso } from "@/lib/etiquetaPesoCache";
 import { normalizarEtiquetaLidaApi } from "@/lib/normalizarEtiquetaLida";
@@ -23,11 +24,12 @@ import type {
   SeparacaoGerarRequest,
   VolumeGerado,
   PedidoSeparadoVolume,
-  RelatorioInventarioBitolaItem,
   RelatorioInventarioBitolaResponse,
   RelatorioAuditoriaEstoqueLinha,
   InventarioResumo,
   EstoqueFisicoItem,
+  InventarioExpedicaoBiResponse,
+  InventarioBiSaidaEtiquetasResponse,
 } from "@/types/api";
 
 const TOKEN_KEY = "@expedicao:token";
@@ -231,6 +233,21 @@ export async function listarTodosInventarios(): Promise<InventarioModel[]> {
   return Array.isArray(res.data) ? res.data.map(normalizarHeaderInventario) : [];
 }
 
+export async function buscarInventarioBiExpedicao(): Promise<InventarioExpedicaoBiResponse> {
+  const res = await api.get<InventarioExpedicaoBiResponse>(`${API_INVENTARIO}/bi/expedicao`);
+  return res.data;
+}
+
+export async function buscarInventarioBiSaidaDetalhes(
+  inventarioAnteriorId: number,
+  inventarioAtualId: number,
+): Promise<InventarioBiSaidaEtiquetasResponse> {
+  const res = await api.get<InventarioBiSaidaEtiquetasResponse>(`${API_INVENTARIO}/bi/expedicao/saida-detalhes`, {
+    params: { anterior: inventarioAnteriorId, atual: inventarioAtualId },
+  });
+  return res.data;
+}
+
 export async function listarInventariosPendentes(): Promise<InventarioModel[]> {
   const res = await api.get<unknown>(`${API_INVENTARIO}/pendentes`);
   return Array.isArray(res.data) ? res.data.map(normalizarHeaderInventario) : [];
@@ -320,7 +337,7 @@ export async function listarUsuariosWinthor(): Promise<UsuarioWinthor[]> {
 
 export async function listarModulosUsuario(matricula: number): Promise<string[]> {
   const res = await api.get<string[]>(`/api/permissoes/${matricula}`);
-  return res.data;
+  return normalizarListaModulosPermissao(res.data ?? []);
 }
 
 export async function salvarModulosUsuario(matricula: number, modulos: string[]): Promise<void> {
@@ -334,11 +351,15 @@ export async function listarBitolasSeparacao(): Promise<string[]> {
   return res.data;
 }
 
-export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaItem[]> {
+export async function buscarRelatorioInventarioBitola(bitola: string): Promise<RelatorioInventarioBitolaResponse> {
   const res = await api.get<RelatorioInventarioBitolaResponse>("/api/relatorio/inventario-bitola", {
     params: { bitola },
   });
-  return res.data.itens ?? [];
+  const d = res.data;
+  return {
+    itens: Array.isArray(d?.itens) ? d.itens : [],
+    quantidadePrevistaTotal: typeof d?.quantidadePrevistaTotal === "number" ? d.quantidadePrevistaTotal : 0,
+  };
 }
 
 export async function listarInventariosPorData(data: string): Promise<InventarioResumo[]> {

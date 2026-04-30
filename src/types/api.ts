@@ -265,6 +265,73 @@ export interface EstoqueFisicoItem {
   separados: number;
   soltos: number;
   total: number;
+/** GET /api/inventario/bi/expedicao */
+export interface BitolaDeltaItem {
+  bitola: string;
+  pesoKgAnterior: number;
+  pesoKgAtual: number;
+  deltaKg: number;
+}
+
+export interface ExpedicaoPeriodoItem {
+  inventarioAnteriorId: number;
+  inventarioAtualId: number;
+  dataReferenciaAnterior: string;
+  dataReferenciaAtual: string;
+  pesoTotalAnteriorKg: number;
+  pesoTotalAtualKg: number;
+  pesoExpedicaoKgHeader: number;
+  deltasPorBitola: BitolaDeltaItem[];
+}
+
+export interface ExpedicaoAgregadoSemanal {
+  anoSemanaIso: string;
+  ano: number;
+  semanaIso: number;
+  pesoExpedicaoTotalKg: number;
+}
+
+export interface ExpedicaoAgregadoMensal {
+  anoMes: string;
+  ano: number;
+  mes: number;
+  pesoExpedicaoTotalKg: number;
+}
+
+export interface InventarioExpedicaoBiResponse {
+  mensagemObservacao?: string | null;
+  periodos: ExpedicaoPeriodoItem[];
+  agregadosSemanais: ExpedicaoAgregadoSemanal[];
+  agregadosMensais: ExpedicaoAgregadoMensal[];
+  /** Chip Pedido (SEP‑) — último intervalo. */
+  pesoUltimoDetalheSeparadoKg?: number | null;
+  /** Chip Sintético (MAN‑) — último intervalo. */
+  pesoUltimoDetalheSoltoSinteticoKg?: number | null;
+  /** Soma dos dois acima. */
+  pesoUltimoDetalheSeparadoMaisSoltoKg?: number | null;
+}
+
+/** GET /api/inventario/bi/expedicao/saida-detalhes */
+export interface SaidaEtiquetaLinha {
+  etiqueta: string;
+  codProd: string | null;
+  pesoKg: number;
+  /** true quando PESO nulo e calculado como qtde × PCPRODUT.PESOLIQ (SOLTO/SEPARADO) */
+  pesoEstimadoPorPcprodut?: boolean | null;
+  quantidade?: number | null;
+  /** RETO, DOBRADO, SOLTO, SEPARADO … */
+  statusEtiqueta: string | null;
+  numPed: number | null;
+  codigoDestino: string;
+  textoDestino: string;
+}
+
+export interface InventarioBiSaidaEtiquetasResponse {
+  inventarioAnteriorId: number;
+  inventarioAtualId: number;
+  textoObservacao?: string | null;
+  somaPesoLinhasKg: number;
+  apenasNaContagemAnterior: SaidaEtiquetaLinha[];
 }
 
 export interface ReimpressaoLog {
