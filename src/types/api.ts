@@ -251,6 +251,20 @@ export interface RelatorioAuditoriaEstoqueLinha {
   resultado: number;
 }
 
+export interface InventarioResumo {
+  id: number;
+  dataReferencia: string;
+  status: string;
+  usuarioAbertura: string;
+}
+
+export interface EstoqueFisicoItem {
+  bitola: string;
+  retos: number;
+  dobrados: number;
+  separados: number;
+  soltos: number;
+  total: number;
 /** GET /api/inventario/bi/expedicao */
 export interface BitolaDeltaItem {
   bitola: string;

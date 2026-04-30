@@ -172,6 +172,22 @@ const cards: NavCard[] = [
       </svg>
     ),
   },
+{
+    title: "Rel. Estoque Físico por Data",
+    description: "Resumo do inventário por bitola: retos, dobrados, separados e soltos",
+    path: "/relatorio/estoque-fisico",
+    color: "bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+        <line x1="7" y1="8" x2="7" y2="12"/>
+        <line x1="12" y1="6" x2="12" y2="12"/>
+        <line x1="17" y1="10" x2="17" y2="12"/>
+      </svg>
+    ),
+  },
   {
     title: "BI Expedição (inventário)",
     description: "Peso expedido entre contagens e diferença por bitola",

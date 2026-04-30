@@ -26,6 +26,8 @@ import type {
   PedidoSeparadoVolume,
   RelatorioInventarioBitolaResponse,
   RelatorioAuditoriaEstoqueLinha,
+  InventarioResumo,
+  EstoqueFisicoItem,
   InventarioExpedicaoBiResponse,
   InventarioBiSaidaEtiquetasResponse,
 } from "@/types/api";
@@ -358,6 +360,20 @@ export async function buscarRelatorioInventarioBitola(bitola: string): Promise<R
     itens: Array.isArray(d?.itens) ? d.itens : [],
     quantidadePrevistaTotal: typeof d?.quantidadePrevistaTotal === "number" ? d.quantidadePrevistaTotal : 0,
   };
+}
+
+export async function listarInventariosPorData(data: string): Promise<InventarioResumo[]> {
+  const res = await api.get<InventarioResumo[]>("/api/relatorio/estoque-fisico/inventarios", {
+    params: { data },
+  });
+  return res.data;
+}
+
+export async function buscarEstoqueFisico(inventarioId: number): Promise<EstoqueFisicoItem[]> {
+  const res = await api.get<EstoqueFisicoItem[]>("/api/relatorio/estoque-fisico", {
+    params: { inventarioId },
+  });
+  return res.data;
 }
 
 export async function buscarRelatorioAuditoriaEstoque(
