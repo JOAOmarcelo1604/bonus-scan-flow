@@ -14,6 +14,7 @@ export const MODULOS_SISTEMA: readonly string[] = [
   "Solicitações de Etiquetas",
   "Rel. Inventário por Bitola",
   "Rel. Auditoria de Estoque",
+  "Rel. Estoque Físico por Data",
   "BI Expedição (inventário)",
   "Reimpressão de Etiquetas",
 ];
